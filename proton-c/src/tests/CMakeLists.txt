@@ -40,6 +40,18 @@ macro (pn_add_c_test test file)
   endif ()
 endmacro(pn_add_c_test)
 
+link_directories(${LINK_DIRECTORIES} /home/jdanek/Work)
+
+add_executable (fuzz fuzz_detect.c ../core/autodetect.c)
+target_link_libraries (fuzz qpid-proton Fuzzer m stdc++)
+
+find_package(Libuv)
+
+add_executable (fuzz_proactor_recv fuzz_proactor_recv.c ../../../examples/c/proactor/libuv_proactor.c)
+target_link_libraries (fuzz_proactor_recv qpid-proton ${Libuv_LIBRARIES} Fuzzer m stdc++)
+set_target_properties(fuzz_proactor_recv PROPERTIES
+      COMPILE_DEFINITIONS  "PN_PROACTOR_INCLUDE=\"libuv_proactor.h\"")
+
 pn_add_c_test (c-object-tests object.c)
 pn_add_c_test (c-message-tests message.c)
 pn_add_c_test (c-engine-tests engine.c)
