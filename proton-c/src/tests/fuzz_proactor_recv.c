@@ -19,7 +19,7 @@
  *
  */
 
-// #define _POSIX_C_SOURCE 200809L
+#define _POSIX_C_SOURCE 200809L
 
 #include <proton/connection.h>
 #include <proton/connection_driver.h>
@@ -38,7 +38,6 @@
 #include <unistd.h>
 
 #include <errno.h>
-#include <resolv.h>
 #include <arpa/inet.h>
 #include <errno.h>
 #include <strings.h>
@@ -46,6 +45,8 @@
 #include <sys/wait.h>
 
 bool VERBOSE = false;
+// bool VERBOSE = true;
+bool ERRORS = true;
 
 typedef char str[1024];
 
@@ -67,7 +68,7 @@ static void check_condition(pn_event_t *e, pn_condition_t *cond) {
   if (VERBOSE) printf("beginning check_condition\n");
   if (pn_condition_is_set(cond)) {
     exit_code = 1;
-    if (VERBOSE) fprintf(stderr, "%s: %s: %s\n", pn_event_type_name(pn_event_type(e)),
+    if (VERBOSE || ERRORS) fprintf(stderr, "%s: %s: %s\n", pn_event_type_name(pn_event_type(e)),
             pn_condition_get_name(cond), pn_condition_get_description(cond));
   }
 }
@@ -148,18 +149,18 @@ static void handle(app_data_t* app, pn_event_t* event) {
 
    case PN_CONNECTION_REMOTE_CLOSE:
     check_condition(event, pn_connection_remote_condition(pn_event_connection(event)));
-//     pn_connection_close(pn_event_connection(event));
+    pn_connection_close(pn_event_connection(event));
     break;
 
    case PN_SESSION_REMOTE_CLOSE:
     check_condition(event, pn_session_remote_condition(pn_event_session(event)));
-//     pn_connection_close(pn_event_connection(event));
+    pn_connection_close(pn_event_connection(event));
     break;
 
    case PN_LINK_REMOTE_CLOSE:
    case PN_LINK_REMOTE_DETACH:
     check_condition(event, pn_link_remote_condition(pn_event_link(event)));
-//     pn_connection_close(pn_event_connection(event));
+    pn_connection_close(pn_event_connection(event));
     break;
 
    case PN_PROACTOR_INACTIVE:
@@ -170,10 +171,13 @@ static void handle(app_data_t* app, pn_event_t* event) {
   }
 }
 
-long now() {  
+double now() {  
     struct timespec spec;
-    clock_gettime(CLOCK_MONOTONIC, &spec);
-    return spec.tv_sec + spec.tv_nsec / 1000000;
+    if (clock_gettime(CLOCK_MONOTONIC, &spec) != 0) {
+        perror("clock_gettime");
+        exit(errno);
+    }
+    return (double) spec.tv_sec + (double) spec.tv_nsec / 1000000.0;
 }
 
 int sut() {
@@ -193,10 +197,10 @@ int sut() {
   pn_proactor_connect(app.proactor, pn_connection(), host, port);
 
   if (VERBOSE) printf("before loop\n");
-  long thence = now();
+  double thence = now();
   do {
-//     printf("before set proactor timeout\n");
-//     pn_proactor_set_timeout(app.proactor, 100);
+    if (VERBOSE) printf("before set proactor timeout\n");
+    pn_proactor_set_timeout(app.proactor, 100);
     if (VERBOSE) printf("before proactor wait\n");
     pn_event_batch_t *events = pn_proactor_wait(app.proactor);
     pn_event_t *e;
@@ -207,8 +211,10 @@ int sut() {
     pn_proactor_done(app.proactor, events);
   
     if (VERBOSE) printf("before reloop\n");
-    if (now() - thence > 0) {
-//         app.finished = true;
+    double deltat = now() - thence;
+    if (VERBOSE) printf("deltat %f", deltat);
+    if (deltat > 1) {
+         app.finished = true;
     }
   } while(!app.finished);
 
@@ -230,7 +236,7 @@ void serve_data(const uint8_t *Data, size_t Size) {
         _Exit(errno);
     }
 	struct sockaddr_in self;
-	bzero(&self, sizeof(self));
+	memset(&self, 0, sizeof(self));
 	self.sin_family = AF_INET;
 	self.sin_port = htons(5672);
 	self.sin_addr.s_addr = INADDR_ANY;
@@ -245,15 +251,20 @@ void serve_data(const uint8_t *Data, size_t Size) {
 	}
 	
 	if (VERBOSE) printf("listened, lets run sut\n");
-    kill(getppid(),SIGUSR1);
+//     sleep(1);
+     kill(getppid(), SIGUSR1);
+//     alarm(5);  // child will die in x s
     
     struct sockaddr_in client_addr;
     socklen_t addrlen = sizeof(client_addr);
     int clientfd = accept(sockfd, (struct sockaddr *) &client_addr, &addrlen);
     if (VERBOSE) printf("%s:%d connected\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+    if (VERBOSE) printf("will send\n");
     send(clientfd, Data, Size, 0);
+//     sleep(1);
     close(clientfd);
 	close(sockfd);
+    if (VERBOSE) printf("done serving\n");
 }
 
 void run_sut(int s) {
@@ -267,8 +278,21 @@ void signal_callback_handler(int signum){
 }
 
 bool DoInitialization() {
-    signal(SIGUSR1, run_sut);
-    signal(SIGPIPE, signal_callback_handler);
+    struct sigaction sa;
+    sa.sa_handler = run_sut;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART; /* Restart functions if interrupted by handler */
+    if (sigaction(SIGUSR1, &sa, NULL) == -1) {
+        perror("sigaction");
+        exit(2);
+    }
+    sa.sa_handler = signal_callback_handler;
+    if (sigaction(SIGPIPE, &sa, NULL) == -1) {
+        perror("sigaction");
+        exit(2);
+    }
+//     signal(SIGUSR1, run_sut);
+//     signal(SIGPIPE, signal_callback_handler);
     return true;
 }
 
@@ -280,6 +304,10 @@ int LLVMFuzzerInitialize(int *argc, char ***argv) {
 
 // extern "C"
 int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
+    // single run of sut, to fake things out, never run this with corpus
+//     sut();
+//     exit(0);
+    
 //     static bool Initialized = DoInitialization();  // could be this is c++ only?
     pid_t pid = fork();
     if (pid < 0) {
@@ -287,11 +315,23 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
         exit(errno);
     }
     if (pid == 0) {  // child
+        /*struct sigaction sa;
+        sa.sa_handler = SIG_DFL;
+        sigemptyset(&sa.sa_mask);
+        sa.sa_flags = SA_RESTART;
+        if(sigaction(SIGUSR1, &sa, NULL) == -1){
+            perror("childs sigaction\n");
+            _Exit(1);    
+        }
+                */
         serve_data(Data, Size);
+
         _Exit(0);
     } else {  // parent
-        int status;
-        waitpid(pid, &status, WUNTRACED);
+        if (VERBOSE) printf("waiting for child\n");
+        siginfo_t status;
+        waitid(P_PID, pid, &status, WEXITED);
+        if (VERBOSE) printf("finished waiting for child\n");
     }
     return 0;  // Non-zero return values are reserved for future use.
 }
