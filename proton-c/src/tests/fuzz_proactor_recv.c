@@ -242,6 +242,12 @@ void serve_data(const uint8_t *Data, size_t Size) {
 	self.sin_addr.s_addr = INADDR_ANY;
     if ( bind(sockfd, (struct sockaddr *) &self, sizeof(self)) != 0 ) {
 		perror("bind");
+        
+        // lets unblock the old child that listens by starting new client to read from it
+        // it breaks the fuzzing somewhat, but it is better to mess up one than many inputs
+        if (VERBOSE) printf("unblocking old bound child\n");
+        kill(getppid(), SIGUSR1);
+        
 		_Exit(errno);
 	}
 	if (VERBOSE) printf("bound\n");
@@ -302,6 +308,8 @@ int LLVMFuzzerInitialize(int *argc, char ***argv) {
  return 0;
 }
 
+int prev_pid = 0;
+
 // extern "C"
 int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
     // single run of sut, to fake things out, never run this with corpus
@@ -309,6 +317,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
 //     exit(0);
     
 //     static bool Initialized = DoInitialization();  // could be this is c++ only?
+    
+    // sometimes, esp. with AFL, but libFuzz too,
+    // the old socket is still bound for new run and
+    // it skips all new runs...
+    if (prev_pid != 0) {
+        kill(SIGKILL, prev_pid);
+    }
+    
     pid_t pid = fork();
     if (pid < 0) {
         perror("fork");
@@ -328,6 +344,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
 
         _Exit(0);
     } else {  // parent
+        prev_pid = pid;
         if (VERBOSE) printf("waiting for child\n");
         siginfo_t status;
         waitid(P_PID, pid, &status, WEXITED);
