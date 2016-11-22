@@ -127,6 +127,10 @@ endif()
 set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize-coverage=trace-pc-guard -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls -O1 -g" )
 set( CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize-coverage=trace-pc-guard -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls -O1 -g" )
 
+# afl-fuzz options
+# set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize-coverage=trace-pc -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls -O1 -g" )
+# set( CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize-coverage=trace-pc -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls -O1 -g" )
+
 # Link in openssl if present
 if (SSL_IMPL STREQUAL openssl)
   set (pn_ssl_impl src/ssl/openssl.c)

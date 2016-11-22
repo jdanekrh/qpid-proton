@@ -52,6 +52,28 @@ target_link_libraries (fuzz_proactor_recv qpid-proton ${Libuv_LIBRARIES} Fuzzer 
 set_target_properties(fuzz_proactor_recv PROPERTIES
       COMPILE_DEFINITIONS  "PN_PROACTOR_INCLUDE=\"libuv_proactor.h\"")
 
+# for alf-fuzz, when compilling with normal clang
+add_executable (afl_fuzz_proactor_recv fuzz_proactor_recv.c ../../../examples/c/proactor/libuv_proactor.c afl_driver.cpp ./afl-llvm-rt.o.o)
+
+# again afl-fuzz, when compiling with their clang wrapper
+# add_executable (afl_fuzz_proactor_recv fuzz_proactor_recv.c ../../../examples/c/proactor/libuv_proactor.c afl_driver.cpp)
+
+target_link_libraries (afl_fuzz_proactor_recv qpid-proton ${Libuv_LIBRARIES} m stdc++)
+set_target_properties(afl_fuzz_proactor_recv PROPERTIES
+      COMPILE_DEFINITIONS  "PN_PROACTOR_INCLUDE=\"libuv_proactor.h\"")
+
+# add_executable (fuzz_engine fuzz_engine.c)
+# target_link_libraries (fuzz_engine qpid-proton Fuzzer m stdc++)
+
+add_executable (fuzz_url fuzz_url.c)
+target_link_libraries (fuzz_url qpid-proton Fuzzer m stdc++)
+
+add_executable (fuzz_message_decode fuzz_message_decode.c)
+target_link_libraries (fuzz_message_decode qpid-proton Fuzzer m stdc++)
+
+add_executable (fuzz_connection_driver fuzz_connection_driver.c)
+target_link_libraries (fuzz_connection_driver qpid-proton Fuzzer m stdc++)
+
 pn_add_c_test (c-object-tests object.c)
 pn_add_c_test (c-message-tests message.c)
 pn_add_c_test (c-engine-tests engine.c)
