@@ -7,6 +7,7 @@
 #include "proton/connection_driver.h"
 #include "proton/engine.h"
 #include "proton/message.h"
+#include "proton/log.h"
 
 
 #define MAX_SIZE 1024
@@ -28,12 +29,19 @@ static void handle(app_data_t* app, pn_event_t* event);
 static void check_condition(pn_event_t *e, pn_condition_t *cond);
 
 
-const bool VERBOSE = true;
-const bool ERRORS = true;
+// const bool VERBOSE = true;
+const bool VERBOSE = false;
+// const bool ERRORS = true;
+const bool ERRORS = false;
+
+
+// I just could not get rid of the errors on stderr any other way
+void devnull(pn_transport_t *transport, const char *message) {}
 
 
 // extern "C" 
 int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
+    if (VERBOSE) printf("BEGIN LLVMFuzzerTestOneInput\n");
   app_data_t app = {{0}};
   snprintf(app.container_id, sizeof(app.container_id), "%s:%d", "fuzz_connection_driver", getpid());
   
@@ -42,9 +50,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
         printf("pn_connection_driver_init\n");
         exit(1);
     }
-    // The transport is bound automatically after the PN_CONNECTION_INIT has been is
-    // handled by the application.
-//     pn_connection_driver_bind(&driver); // WAT?
+    
+    pn_log_enable(false);
+    pn_log_logger(NULL);
+    pn_transport_trace(driver.transport, PN_TRACE_OFF);
+    pn_transport_set_tracer(driver.transport, devnull);
+    
 
     uint8_t * data = (uint8_t *) Data;
     size_t size = Size;
@@ -59,9 +70,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
     fdc_write(&driver);
         
     do {
-        fcd_read(&driver, &data, &size);
-        printf("size is %d, data is %p\n", (int) size, (void *) data);
         fdc_write(&driver);
+        fcd_read(&driver, &data, &size);
+        if (VERBOSE) printf("size is %d, data is %p\n", (int) size, (void *) data);
         pn_event_t *event;
         while ((event = pn_connection_driver_next_event(&driver)) != NULL) {
             handle(&app, event);
@@ -70,6 +81,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
     
     pn_connection_driver_close(&driver);
     pn_connection_driver_destroy(&driver);  // documentation says pn_connection_driver_free
+    if (VERBOSE) printf("END LLVMFuzzerTestOneInput\n");
   return 0;
 }
 
@@ -164,7 +176,7 @@ static void decode_message(pn_delivery_t *dlv) {
       if (PN_OK == pn_message_decode(m, buffer, len)) {
         pn_string_t *s = pn_string(NULL);
         pn_inspect(pn_message_body(m), s);
-        printf("%s\n", pn_string_get(s));
+        if (ERRORS) printf("%s\n", pn_string_get(s));
         pn_free(s);
       }
       pn_message_free(m);
