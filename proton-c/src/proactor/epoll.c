@@ -1176,6 +1176,8 @@ static void pconnection_maybe_connect_lh(pconnection_t *pc) {
           pc->psocket.sockfd = fd;
           pconnection_start(pc);
           return;               /* Async connection started */
+        } else {
+            printf("Immediate connection refused]\n");
         }
       }
       /* connect failed immediately, go round the loop to try the next addr */
