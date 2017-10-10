@@ -753,7 +753,7 @@ if (BUILD_PYTHON)
               "CLASSPATH=${CMAKE_BINARY_DIR}/proton-j/proton-j.jar"
               "SASLPASSWD=${SASLPASSWD_EXE}"
               ${VALGRIND_ENV}
-              ${PYTHON_EXECUTABLE} "${py_root}/proton-test")
+              "${CMAKE_BINARY_DIR}/coverage" "${py_root}/proton-test")
   set_tests_properties(python-test PROPERTIES PASS_REGULAR_EXPRESSION "Totals: .* 0 failed")
 
   # Eventually, we'll get rid of this check when other
