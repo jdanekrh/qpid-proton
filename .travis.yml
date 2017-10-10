@@ -39,6 +39,7 @@ addons:
     - python3-dev
     - php5
     - golang
+    - lcov
 
 install:
 - pip install --user --upgrade pip
@@ -48,7 +49,6 @@ install:
 before_script:
 - mkdir build
 - cd build
-- cmake .. -DCMAKE_INSTALL_PREFIX=$PWD/install ${QPID_PROTON_CMAKE_ARGS}
 
 script:
-- cmake --build . --target install && ctest -V ${QPID_PROTON_CTEST_ARGS}
+- ../bin/codecov.sh
