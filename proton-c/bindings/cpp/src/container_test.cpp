@@ -32,6 +32,16 @@
 #include <string>
 #include <cstdio>
 #include <sstream>
+#include <proton/message.hpp>
+#include <proton/delivery.hpp>
+#include <proton/receiver_options.hpp>
+#include <proton/sender_options.hpp>
+
+// just to try things out
+#include <thread>
+#include <mutex>
+#include <unistd.h>
+
 
 namespace {
 
@@ -150,6 +160,48 @@ int test_container_bad_address() {
     return 0;
 }
 
+class immediate_stop_tester: public proton::messaging_handler {
+public:
+    void on_container_start(proton::container &c) PN_CPP_OVERRIDE {
+        c.stop();
+    }
+};
+
+// FIXME: this test hangs, if uncommented
+int test_container_immediate_stop() {
+    immediate_stop_tester t;
+//    proton::container(t).run();
+    return 0;
+}
+
+struct less_immediate_stop_tester : public proton::messaging_handler {
+    proton::listener listener;
+    int port;
+    bool done;
+    int scheduled_work;
+
+    less_immediate_stop_tester() : done(false), scheduled_work(0) {}
+
+    void connect(proton::container* c) {
+        c->connect("localhost:"+ int2string(port));
+    }
+
+    void on_container_start(proton::container& c) PN_CPP_OVERRIDE {
+        port = listen_on_random_port(c, listener);
+        connect(&c);
+        c.stop();
+    }
+};
+
+// FIXME: this test has some Invalid reads in Valgrind  // with last line commented out it doesn't
+int test_container_less_immediate_stop() {
+    less_immediate_stop_tester t;
+    proton::container c(t);
+    c.run();
+//    t.listener.stop(); // saw this done in another test...
+    return 0;
+}
+
 class stop_tester : public proton::messaging_handler {
     proton::listener listener;
 
@@ -231,17 +283,217 @@ int test_container_schedule_nohang() {
     return 0;
 }
 
+struct schedule_tester : public proton::messaging_handler {
+    proton::listener listener;
+    int port;
+    bool done;
+    int scheduled_work;
+
+    schedule_tester() : done(false), scheduled_work(0) {}
+
+    void connect(proton::container* c) {
+        c->connect("localhost:"+ int2string(port));
+    }
+
+    void on_container_start(proton::container& c) PN_CPP_OVERRIDE {
+        schedule_work(&c, proton::duration(250), [this]() { this->scheduled_work++; });
+        port = listen_on_random_port(c, listener);
+        connect(&c);
+    }
+
+    void on_connection_open(proton::connection& c) PN_CPP_OVERRIDE {
+        std::cout << "on connection open" << std::endl;
+        schedule_work(&c.container(), proton::duration(250), [this]() { this->scheduled_work++; });
+        c.close();
+    }
+
+    void on_connection_close(proton::connection& c) PN_CPP_OVERRIDE {
+        schedule_work(&c.container(), proton::duration(250), [this]() { this->scheduled_work++; });
+        if (!done) {
+            done = true;
+            listener.stop();
+        }
+    }
+};
+
+int test_container_schedule_close_with_task_in_queue() {
+    schedule_tester t;
+    proton::container(t).run();
+    ASSERT_EQUAL(t.scheduled_work, 5);  // this reactor connects to itself
+    ASSERT(t.done);
+    return 0;
+}
+
+class myexception : public std::exception {};
+
+struct exception_schedule_tester : public proton::messaging_handler {
+    proton::listener listener;
+    int port;
+    bool done;
+    int scheduled_work;
+
+    exception_schedule_tester() : done(false), scheduled_work(0) {}
+
+    void connect(proton::container* c) {
+        c->connect("localhost:"+ int2string(port));
+    }
+
+    void on_container_start(proton::container& c) PN_CPP_OVERRIDE {
+        port = listen_on_random_port(c, listener);
+        connect(&c);
+        schedule_work(&c, proton::duration(250), [this]() {
+            throw myexception();
+        });
+        c.stop();
+    }
+};
+
+int test_container_schedule_throw_exception() {
+    exception_schedule_tester t;
+    proton::container c(t);
+    try {
+        c.run();
+        FAIL("expected exception");
+    } catch (proton::error &e) {
+    }
+//    t.listener.stop(); // uh, why?
+    return 0;
+}
+
+std::mutex initialized;
+
+struct multithreaded_schedule_tester : public proton::messaging_handler {
+    proton::listener listener;
+    int port;
+    bool done;
+    int scheduled_work;
+    proton::sender sender;
+
+    multithreaded_schedule_tester() : done(false), scheduled_work(0) {}
+
+    void connect(proton::container* c) {
+        c->connect("localhost:"+ int2string(port));
+    }
+
+    void on_container_start(proton::container& c) PN_CPP_OVERRIDE {
+//        connect(&c);
+        sender = c.open_sender("localhost:" + int2string(port));
+//        proton::message m;
+//        sender.send(m);
+    }
+
+    void on_connection_open(proton::connection &c) override {
+        std::cout << "on_connection_open sender" << std::endl;
+//        c.open_session();
+//        c.open_receiver("aa", proton::receiver_options().handler(*this));
+    }
+
+    void on_sender_open(proton::sender &sender) PN_CPP_OVERRIDE {
+        std::cout << "on_sender_open" << std::endl;
+
+    }
+
+    void on_sendable(proton::sender &s) override {
+        std::cout << "on_sendable" << std::endl;
+        proton::message m;
+        sender.send(m);
+    }
+};
+
+struct multithreaded_schedule_receiver_tester : public proton::messaging_handler {
+    proton::listener listener;
+    int port;
+    bool done;
+    int scheduled_work;
+
+    multithreaded_schedule_receiver_tester() : done(false), scheduled_work(0) {}
+
+    void connect(proton::container* c) {
+        c->connect("localhost:"+ int2string(port));
+    }
+
+    void on_container_start(proton::container& c) PN_CPP_OVERRIDE {
+        port = listen_on_random_port(c, listener);
+
+        sleep(5);
+
+        initialized.unlock();
+    }
+
+    void on_connection_open(proton::connection &c) override {
+        std::cout << "on_connection_open receiver" << std::endl;
+//        c.open_session();
+//        c.open_receiver("aa", proton::receiver_options().handler(*this));
+    }
+
+    void on_sender_open(proton::sender &sender) PN_CPP_OVERRIDE {
+        std::cout << "on_sender_open" << std::endl;
+
+    }
+//
+//    void on_sender_open(proton::sender &sender) PN_CPP_OVERRIDE {
+//        std::cout << "on_sender_open" << std::endl;
+//        if (sender.source().dynamic()) {
+//            std::string addr = generate_address();
+//            sender.open(proton::sender_options().source(proton::source_options().address(addr)));
+//            senders[addr] = sender;
+//        }
+//    }
+
+    void on_sendable(proton::sender &s) override {
+        std::cout << "on_sendable" << std::endl;
+    }
+
+    void on_message(proton::delivery &d, proton::message &m) override {
+        std::cout << "on_message" << std::endl;
+    }
+};
+
+int test_container_schedule_multithreaded() {
+    return 0;
+
+    multithreaded_schedule_receiver_tester r;
+    multithreaded_schedule_tester s;
+
+    initialized.lock();
+
+    std::thread t2([&s, &r](){
+        proton::container(r).run();
+    });
+
+    initialized.lock();
+    s.port = r.port;
+
+//    s.port = 12345;
+
+    std::cout << "port is " << s.port << std::endl;
+
+     std::thread t1([&s, &r](){
+        proton::container(s).run();
+    });
+    t1.join();
+    t2.join();
+    return 0;
+}
+
 }
 
 int main(int, char**) {
     int failed = 0;
+    RUN_TEST(failed, test_container_schedule_multithreaded());
+
     RUN_TEST(failed, test_container_default_container_id());
     RUN_TEST(failed, test_container_vhost());
     RUN_TEST(failed, test_container_default_vhost());
     RUN_TEST(failed, test_container_no_vhost());
     RUN_TEST(failed, test_container_bad_address());
     RUN_TEST(failed, test_container_stop());
+    RUN_TEST(failed, test_container_immediate_stop());
+    RUN_TEST(failed, test_container_less_immediate_stop());
     RUN_TEST(failed, test_container_schedule_nohang());
+    RUN_TEST(failed, test_container_schedule_close_with_task_in_queue());
+    RUN_TEST(failed, test_container_schedule_throw_exception());
     return failed;
 }
 
+// todo try two p2p receivers on the same port, the qe cli will do nothing (no error)
