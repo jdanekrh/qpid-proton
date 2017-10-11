@@ -41,6 +41,8 @@ class PN_CPP_CLASS_EXTERN listener {
     PN_CPP_EXTERN listener(const listener&);
     PN_CPP_EXTERN ~listener();
     PN_CPP_EXTERN listener& operator=(const listener&);
+    /// Get the port of the i-th listener
+    PN_CPP_EXTERN int port(int index);
 
     /// Stop listening on the address provided to the call to
     /// container::listen that returned this listener.

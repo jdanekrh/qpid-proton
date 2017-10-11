@@ -547,7 +547,7 @@ struct pn_listener_t {
   void *listener_context;
   size_t backlog;
   int accepted_fd;              /* fd accepted but not yet handled by pn_listener_accept() */
-  psocket_t *accepted;          /* psocket from which we accpeted accepted_fd */
+  psocket_t *accepted;          /* psocket from which we accepted accepted_fd */
   bool close_dispatched;
   bool armed;
   pn_listener_t *overflow;       /* Next overflowed listener */
@@ -1583,6 +1583,16 @@ void *pn_listener_get_context(pn_listener_t *l) {
 
 void pn_listener_set_context(pn_listener_t *l, void *context) {
   l->listener_context = context;
+}
+
+int pn_listener_get_port(pn_listener_t *l, int i) {
+    struct sockaddr_in sin;
+    socklen_t len = sizeof(sin);
+    if (getsockname(l->psockets[i].sockfd, (struct sockaddr *)&sin, &len) == -1) {
+        perror("getsockname");
+        return 0;
+    }
+    return ntohs(sin.sin_port);
 }
 
 pn_record_t *pn_listener_attachments(pn_listener_t *l) {

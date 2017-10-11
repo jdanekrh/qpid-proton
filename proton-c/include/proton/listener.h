@@ -91,6 +91,11 @@ PNP_EXTERN void pn_listener_set_context(pn_listener_t *listener, void *context);
  */
 
 /**
+ * Port number where the i-th socket is bound
+ */
+PNP_EXTERN int pn_listener_get_port(pn_listener_t *listener, int index);
+
+/**
  * Get the attachments that are associated with a listener object.
  */
 PNP_EXTERN pn_record_t *pn_listener_attachments(pn_listener_t *listener);

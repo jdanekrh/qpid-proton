@@ -31,6 +31,7 @@ listener::listener(pn_listener_t* l): listener_(l) {}
 listener::listener(const listener& l) : listener_(l.listener_) {}
 listener::~listener() {}
 listener& listener::operator=(const listener& l) { listener_ = l.listener_; return *this; }
+int listener::port(int i) { return pn_listener_get_port(listener_, i); }
 
 // FIXME aconway 2017-10-06: should be a no-op if already closed
 void listener::stop() { if (listener_) pn_listener_close(listener_); }
