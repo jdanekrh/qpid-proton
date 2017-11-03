@@ -46,6 +46,7 @@ addons:
     - php5
     - golang
     - lcov
+    - libc6-dev
 
 install:
 - pip install --user --upgrade pip
