@@ -46,6 +46,7 @@ addons:
     - php5
     - golang
     - lcov
+    - glibc-bin
 
 install:
 - pip install --user --upgrade pip
