@@ -32,9 +32,9 @@ from threading import Thread
 from socket import socket, AF_INET, SOCK_STREAM
 from subprocess import Popen,PIPE,STDOUT
 import sys, os, string, subprocess
-from proton import Connection, Transport, SASL, Endpoint, Delivery, SSL
+from proton import Connection, Transport, SASL, Endpoint, Delivery, SSL, Url
 from proton.reactor import Container
-from proton.handlers import CHandshaker, CFlowController
+from proton.handlers import CHandshaker, CFlowController, MessagingHandler
 from string import Template
 
 if sys.version_info[0] == 2 and sys.version_info[1] < 6:
@@ -203,6 +203,65 @@ class Test(TestCase):
 
 class Skipped(SkipTest):
   skipped = True
+
+
+class TestServer2(MessagingHandler):
+    """ Base class for creating test-specific message servers.
+    """
+
+    def __init__(self, **kwargs):
+        super(TestServer2, self).__init__()
+        self.args = kwargs
+        self.reactor = Container(self)
+        self.host = "127.0.0.1"
+        self.port = 0
+        if "host" in kwargs:
+            self.host = kwargs["host"]
+        if "port" in kwargs:
+            self.port = kwargs["port"]
+        self.handlers = [CFlowController(10), CHandshaker()]
+        self.thread = Thread(name="server-thread", target=self.run)
+        self.thread.daemon = True
+        self.running = True
+        self.tags = []
+
+    def start(self):
+        self.reactor.start()
+
+        retry = 0
+        if self.port == 0:
+            self.port = str(randint(49152, 65535))
+            retry = 10
+        while retry > 0:
+            try:
+                self.acceptor = self.reactor.acceptor(self.host, self.port)
+                break
+            except IOError:
+                self.port = str(randint(49152, 65535))
+                retry -= 1
+        assert retry > 0, "No free port for server to listen on!"
+
+    def stop(self):
+        self.running = False
+        self.reactor.wakeup()
+        self.acceptor.close()
+        self.reactor.stop()
+
+    # Note: all following methods all run under the thread:
+
+    def run(self):
+        self.reactor.run()
+
+    def on_start(self, event):
+        print("server: on start")
+
+    def on_delivery(self, event):
+        """
+        :type event: proton.Event
+        """
+        print("server: on delivery")
+        event.delivery.settle()
+        self.tags.append(event.delivery.tag)
 
 
 class TestServer(object):

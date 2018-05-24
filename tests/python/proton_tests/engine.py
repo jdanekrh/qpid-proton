@@ -20,11 +20,17 @@ from __future__ import absolute_import
 
 import os, gc
 import sys
+from threading import Thread
+from multiprocessing import Process, Array, Manager, Value, Queue
+
+from proton.handlers import MessagingHandler
+
 from . import common
 from time import time, sleep
 from proton import *
 from .common import pump, Skipped
 from proton.reactor import Reactor
+from proton.reactor import Container
 from proton._compat import str2bin
 
 
@@ -2018,6 +2024,84 @@ class PipelineTest(Test):
 
 
 class ServerTest(Test):
+
+  def testFailover(self):
+    """ Verify that messages continue to be delivered
+    (to the new broker) after failover happens"""
+    manager = Manager()
+    p1url = manager.Queue()
+    p2url = manager.Queue()
+    p1canrun = manager.Queue()
+    p2canrun = manager.Queue()
+    p1ntags = manager.Queue()
+    p2ntags = manager.Queue()
+
+    def pf(url, canrun, ntags):
+      """
+      :type url: Queue
+      """
+      server = common.TestServer2()
+      server.start()
+      server.thread.start()
+      url.put("%s:%s" % (server.host, server.port))
+      canrun.get()
+      sleep(5)
+      ntags.put(len(server.tags))
+      # not necessary, the whole subprocess gets killed anyways:
+      # server.stop()
+      # server.thread.join()
+      # print("server", len(server.tags))
+
+    p1 = Process(target=pf, args=[p1url, p1canrun, p1ntags], name="p1")
+    p2 = Process(target=pf, args=[p2url, p2canrun, p2ntags], name="p2")
+
+    p1.start()
+    p2.start()
+
+    s1url = p1url.get()
+    s2url = p2url.get()
+
+    print ("server1 url", s1url)
+    print ("server2 url", s2url)
+
+    class Program(MessagingHandler):
+      def __init__(self):
+        super(Program, self).__init__()
+        self.conn = None
+        self.sender = None
+
+      def on_start(self, event):
+        print("sender: on start")
+        # self.conn = event.container.connect(url="%s:%s" % (server.host, server.port))  # , allowed_mechs="ANONYMOUS")
+        self.conn = event.container.connect(urls=[s1url, s2url])
+        self.sender = event.container.create_sender(self.conn, "some_address")
+
+      def on_sendable(self, event):
+        print("sender: on sendable")
+        message = Message()
+        self.sender.send(message)
+
+      def on_connection_opened(self, event):
+        print("sender: on connection opened")
+        # self.sender = event.container.create_sender(event.connection, "some_address")  # don't do it here every time
+
+    p = Program()
+    c = Container(p)
+    t = Thread(target=c.run)
+    t.start()
+    p1canrun.put(True)
+    s1ntags = p1ntags.get()
+    p1.terminate()
+    print("server 1 stopped")
+
+    p2canrun.put(True)
+    s2ntags = p2ntags.get()
+    p2.terminate()
+    sleep(1)
+    c.stop()
+    print("msgs: ", s1ntags, s2ntags)
+    assert s1ntags > 0
+    assert s2ntags > 0
 
   def testKeepalive(self):
     """ Verify that idle frames are sent to keep a Connection alive
