@@ -65,7 +65,7 @@ int pn_i_error_from_errno(pn_error_t *error, const char *msg);
  */
 int64_t pn_i_atoll(const char* num);
 
-int pni_snprintf(char *buf, size_t count, const char *fmt, ...);
+PN_EXTERN int pni_snprintf(char *buf, size_t count, const char *fmt, ...);
 int pni_vsnprintf(char *buf, size_t count, const char *fmt, va_list ap);
 
 #ifndef _MSC_VER
