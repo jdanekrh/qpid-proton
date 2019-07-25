@@ -38,6 +38,8 @@ find_package (CyrusSASL)
 
 enable_testing ()
 
+include(CheckCCompilerFlag)
+include(CheckCXXCompilerFlag)
 # Set up runtime checks (valgrind, sanitizers etc.)
 include(tests/RuntimeCheck.cmake)
 
@@ -125,6 +127,14 @@ foreach (OPTION ${OPTIONS})
   endif ()
 endforeach (OPTION)
 
+if (DEFAULT_LINKTIME_OPTIMIZATION)
+  check_c_compiler_flag("-flto" C_ACCEPTS_LTO)
+  check_cxx_compiler_flag("-flto" CXX_ACCEPTS_LTO)
+  if (NOT (C_ACCEPTS_LTO AND CXX_ACCEPTS_LTO))
+    unset(DEFAULT_LINKTIME_OPTIMIZATION)
+  endif ()
+endif (DEFAULT_LINKTIME_OPTIMIZATION)
+
 # And add the option here too with help text
 option(ENABLE_WARNING_ERROR "Consider compiler warnings to be errors" ${DEFAULT_WARNING_ERROR})
 option(ENABLE_UNDEFINED_ERROR "Check for unresolved library symbols" ${DEFAULT_UNDEFINED_ERROR})
@@ -133,6 +143,10 @@ option(ENABLE_HIDE_UNEXPORTED_SYMBOLS "Only export library symbols that are expl
 option(ENABLE_FUZZ_TESTING "Enable building fuzzers and regression testing with libFuzzer" ${DEFAULT_FUZZ_TESTING})
 
 # Set any additional compiler specific flags
+if (ENABLE_LINKTIME_OPTIMIZATION)
+  set (LTO "-flto")
+endif (ENABLE_LINKTIME_OPTIMIZATION)
+
 if (CMAKE_COMPILER_IS_GNUCC)
   if (ENABLE_WARNING_ERROR)
     set (WERROR "-Werror")
@@ -152,10 +166,6 @@ if (CMAKE_COMPILER_IS_GNUCC)
     set (CATCH_UNDEFINED "-Wl,--no-undefined")
     set (ALLOW_UNDEFINED "-Wl,--allow-shlib-undefined")
   endif (ENABLE_UNDEFINED_ERROR)
-
-  if (ENABLE_LINKTIME_OPTIMIZATION)
-    set (LTO "-flto")
-  endif (ENABLE_LINKTIME_OPTIMIZATION)
 
   if (ENABLE_HIDE_UNEXPORTED_SYMBOLS)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
