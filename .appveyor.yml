@@ -4,12 +4,15 @@ environment:
   global:
     VENV_DIR: "venv"
   matrix:
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       CMAKE_GENERATOR: Visual Studio 15
       VCPKG_INTEGRATION: '-DCMAKE_TOOLCHAIN_FILE=C:/Tools/vcpkg/scripts/buildsystems/vcpkg.cmake'
-    - CMAKE_GENERATOR: Visual Studio 12
-    - CMAKE_GENERATOR: Visual Studio 10
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+      CMAKE_GENERATOR: Visual Studio 12
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+      CMAKE_GENERATOR: Visual Studio 10
 install:
+- pip install --upgrade setuptools
 - cinst -y swig
 - cd C:\Tools\vcpkg
 - git pull
@@ -22,6 +25,7 @@ install:
 - pip install --user --upgrade setuptools
 - "virtualenv --clear %VENV_DIR%"
 - "%VENV_DIR%\\Scripts\\activate.bat"
+- pip install --upgrade setuptools
 - pip install tox
 cache:
 - C:\ProgramData\chocolatey\bin -> .appveyor.yml
