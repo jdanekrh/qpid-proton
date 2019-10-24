@@ -259,7 +259,7 @@ class Configure(build_ext):
     def run(self):
         # check if the Proton library and headers are installed and are
         # compatible with this version of the binding.
-        if self.libqpid_proton_installed(_PROTON_VERSION_STR):
+        if os.name != 'nt' and self.libqpid_proton_installed(_PROTON_VERSION_STR):
             self.use_installed_proton()
         else:
             # Proton not installed or compatible, use bundled proton-c sources
