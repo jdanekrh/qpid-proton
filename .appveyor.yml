@@ -17,7 +17,7 @@ install:
 - vcpkg install jsoncpp:x64-windows
 - vcpkg integrate install
 - pip install --user --upgrade pip
-- pip install --user setuptools tox
+- pip install --user --upgrade setuptools tox
 cache:
 - C:\ProgramData\chocolatey\bin -> .appveyor.yml
 - C:\ProgramData\chocolatey\lib -> .appveyor.yml
