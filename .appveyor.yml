@@ -8,6 +8,9 @@ environment:
     - CMAKE_GENERATOR: Visual Studio 12
     - CMAKE_GENERATOR: Visual Studio 10
 install:
+- pip install --user --upgrade setuptools
+- pip install --user --upgrade pip
+- pip install --user --upgrade tox
 - cinst -y swig
 - cd C:\Tools\vcpkg
 - git pull
@@ -16,8 +19,6 @@ install:
 - vcpkg install jsoncpp:x86-windows
 - vcpkg install jsoncpp:x64-windows
 - vcpkg integrate install
-- pip install --user --upgrade pip
-- pip install --user --upgrade setuptools tox
 cache:
 - C:\ProgramData\chocolatey\bin -> .appveyor.yml
 - C:\ProgramData\chocolatey\lib -> .appveyor.yml
