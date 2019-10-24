@@ -181,7 +181,7 @@ class Configure(build_ext):
             target_base = os.path.join(self.build_temp, 'srcs')
             try:
                 os.makedirs(target_base)
-            except FileExistsError:
+            except OSError:  # FileExistsError in 3.7
                 pass
 
             for f in sources:
