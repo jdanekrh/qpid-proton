@@ -164,7 +164,7 @@ class Configure(build_ext):
         # strings there. This is a known issue with CMake and msbuild, see
         # * https://github.com/Microsoft/msbuild/issues/2424
         # * https://cmake.org/pipermail/cmake-developers/2015-October/026775.html
-        if cc.self.compiler_type!='msvc' and cc.has_function(
+        if cc.compiler_type!='msvc' and cc.has_function(
                 'sasl_client_done', includes=['sasl/sasl.h'], libraries=['sasl2']):
             libraries.append('sasl2')
             sources.append(os.path.join(proton_src, 'sasl', 'cyrus_sasl.c'))
