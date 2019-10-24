@@ -180,7 +180,7 @@ class Configure(build_ext):
             targets = []
             target_base = os.path.join(self.build_temp, 'srcs')
             try:
-                os.mkdir(target_base)
+                os.makedirs(target_base)
             except FileExistsError:
                 pass
 
