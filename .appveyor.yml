@@ -10,7 +10,7 @@ environment:
 install:
 - pip install --user --upgrade setuptools
 - pip install --user --upgrade pip
-- pip install --user --upgrade tox
+- pip install --user --upgrade tox==3.13.2
 - cinst -y swig
 - cd C:\Tools\vcpkg
 - git pull
