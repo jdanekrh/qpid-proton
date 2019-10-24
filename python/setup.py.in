@@ -138,13 +138,13 @@ class Configure(build_ext):
         # Check whether openssl is installed by poking
         # pkg-config for a minimum version 0. If it's installed, it should
         # return True and we'll use it. Otherwise, we'll use the stub.
-        if os.name=='nt':
-            libraries += ['crypt32', 'secur32']
-            sources.append(os.path.join(proton_src, 'ssl', 'schannel.c'))
-        elif misc.pkg_config_version_installed('openssl', atleast='0'):
+        if misc.pkg_config_version_installed('openssl', atleast='0'):
             libraries += ['ssl', 'crypto']
             includes += [misc.pkg_config_get_var('openssl', 'includedir')]
             sources.append(os.path.join(proton_src, 'ssl', 'openssl.c'))
+        elif os.name=='nt':
+            libraries += ['crypt32', 'secur32']
+            sources.append(os.path.join(proton_src, 'ssl', 'schannel.c'))
         else:
             sources.append(os.path.join(proton_src, 'ssl', 'ssl_stub.c'))
             log.warn("OpenSSL not installed - disabling SSL support!")
@@ -259,7 +259,7 @@ class Configure(build_ext):
     def run(self):
         # check if the Proton library and headers are installed and are
         # compatible with this version of the binding.
-        if os.name != 'nt' and self.libqpid_proton_installed(_PROTON_VERSION_STR):
+        if self.libqpid_proton_installed(_PROTON_VERSION_STR):
             self.use_installed_proton()
         else:
             # Proton not installed or compatible, use bundled proton-c sources
