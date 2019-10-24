@@ -182,7 +182,7 @@ class Configure(build_ext):
             try:
                 os.mkdir(target_base)
             except FileExistsError:
-	            pass
+                pass
 
             for f in sources:
                 # We know each file ends in '.c' as we filtered on that above so just add 'pp' to end
