@@ -22,7 +22,6 @@ install:
 - vcpkg install jsoncpp:x64-windows
 - vcpkg integrate install
 - python -m pip install --user --upgrade pip
-- pip install --user --upgrade setuptools
 - "virtualenv --clear %VENV_DIR%"
 - "%VENV_DIR%\\Scripts\\activate.bat"
 - pip install --upgrade setuptools
