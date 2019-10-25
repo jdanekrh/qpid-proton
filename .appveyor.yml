@@ -9,19 +9,21 @@ environment:
       VCPKG_DEFAULT_TRIPLET: x64-windows
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_GENERATOR: Visual Studio 15 2017
-      PYTHON: 2.7
+      PYTHON: "C:\\Python27"
       VCPKG_INTEGRATION: '-DCMAKE_TOOLCHAIN_FILE=C:/Tools/vcpkg/scripts/buildsystems/vcpkg.cmake'
       VCPKG_DEFAULT_TRIPLET: x86-windows
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
       CMAKE_GENERATOR: Visual Studio 14 2015
-      PYTHON: 2.7
-#    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
-#      CMAKE_GENERATOR: Visual Studio 12 2013
-#      PYTHON: 2.7
-#    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
-#      CMAKE_GENERATOR: Visual Studio 11 2012
-#      PYTHON: 2.7
+      PYTHON: "C:\\Python27"
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+      CMAKE_GENERATOR: Visual Studio 12 2013
+      PYTHON: "C:\\Python27"
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+      CMAKE_GENERATOR: Visual Studio 11 2012
+      PYTHON: "C:\\Python27"
 init:
+# Microsoft Visual C++ 9.0 is required. Get it from http://aka.ms/vcpython27
+# https://github.com/SiLab-Bonn/silab_utils/blob/ee92c0c73e4af7ace256ae2e09d734ed4a82e28d/appveyor.yml
 - ps: Start-FileDownload 'http://download.microsoft.com/download/7/9/6/796EF2E4-801B-4FC4-AB28-B59FBF6D907B/VCForPython27.msi' C:\VCForPython27.msi
 - cmd: msiexec /i C:\VCForPython27.msi /quiet /qn
 install:
@@ -34,8 +36,8 @@ install:
 - vcpkg install jsoncpp
 - vcpkg integrate install
 # https://pythonhosted.org/CodeChat/appveyor.yml.html
-- python -m pip install --upgrade pip
-- pip install --upgrade setuptools
+- "%PYTHON%\\python.exe -m pip install --upgrade pip"
+- "%PYTHON%\\python.exe -m pip install --upgrade setuptools"
 cache:
 - C:\ProgramData\chocolatey\bin -> .appveyor.yml
 - C:\ProgramData\chocolatey\lib -> .appveyor.yml
@@ -43,7 +45,7 @@ cache:
 before_build:
 - mkdir BLD
 - cd BLD
-- cmake %VCPKG_INTEGRATION% -G "%CMAKE_GENERATOR%" %QPID_PROTON_CMAKE_ARGS% ..
+- cmake %VCPKG_INTEGRATION% -G "%CMAKE_GENERATOR%" -DPYTHON_EXECUTABLE=%PYTHON%\\python.exe ..
 - cd ..
 build:
   project: BLD/Proton.sln
