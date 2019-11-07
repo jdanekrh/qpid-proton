@@ -103,6 +103,7 @@ elseif(RUNTIME_CHECK STREQUAL "asan")
 
   set(SANITIZE_FLAGS "-g -fno-omit-frame-pointer ${CLANG_ASAN_FLAG} -fsanitize=address,undefined")
   set(TEST_WRAP_PREFIX "${CMAKE_SOURCE_DIR}/tests/preload_asan.sh $<TARGET_FILE:qpid-proton-core>")
+  list(APPEND test_env "UBSAN_OPTIONS=suppressions=${CMAKE_SOURCE_DIR}/tests/ubsan.supp")
   list(APPEND test_env "LSAN_OPTIONS=suppressions=${CMAKE_SOURCE_DIR}/tests/lsan.supp")
 
 elseif(RUNTIME_CHECK STREQUAL "tsan")
