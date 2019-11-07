@@ -29,6 +29,9 @@ matrix:
   include:
   - os: linux
     env:
+    - QPID_PROTON_CMAKE_ARGS='-DRUNTIME_CHECK=asan'
+  - os: linux
+    env:
     - QPID_PROTON_CMAKE_ARGS='-DRUNTIME_CHECK=tsan'
   - os: linux
     env:
