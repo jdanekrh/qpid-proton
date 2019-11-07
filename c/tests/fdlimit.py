@@ -29,12 +29,8 @@ from test_unittest import unittest
 
 # Check if we can run prlimit to control resources
 try:
-    with open(os.devnull, 'w') as stdout:
-        assert subprocess.check_call(["prlimit"], stdout=stdout) == 0, 'prlimit is present, but broken'
-        if subprocess.check_call(["prlimit", "-n256", "prlimit"], stdout=stdout) == 0:
-            prlimit_available = True
-        else:
-            prlimit_available = False
+    assert subprocess.check_call(["prlimit"], stdout=open(os.devnull, 'w')) == 0, 'prlimit is present, but broken'
+    prlimit_available = True
 except OSError:
     prlimit_available = False
 
@@ -42,7 +38,7 @@ except OSError:
 class PRLimitedBroker(test_subprocess.Server):
     def __init__(self, fdlimit, *args, **kwargs):
         super(PRLimitedBroker, self).__init__(
-            ['prlimit', '-n{0:d}'.format(fdlimit), "broker", "", "0"],
+            ['prlimit', '-n{0:d}:'.format(fdlimit), "broker", "", "0"],  # `-n 256:` sets only soft limit to 256
             stdout=subprocess.PIPE, universal_newlines=True, *args, **kwargs)
         self.fdlimit = fdlimit
 
