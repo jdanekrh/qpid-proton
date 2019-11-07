@@ -19,15 +19,15 @@
 
 # Configuration for code analysis tools: runtime checking and coverage.
 
-# Any test that needs runtime checks should use TEST_EXE_PREFIX and TEST_ENV.
+# Any test that needs runtime checks should use TEST_EXE_PREFIX and test_env.
 # Normally they are set as a result of the RUNTIME_CHECK value,
 # but can be set directly for unsupported tools or unusual flags
 # e.g. -DTEST_EXE_PREFIX=rr or -DTEST_EXE_PREFIX="valgrind --tool=massif"
 
 set(TEST_EXE_PREFIX "" CACHE STRING "Prefix for test executable command line")
 set(TEST_WRAP_PREFIX "" CACHE STRING "Prefix for interpreter tests (e.g. python, ruby) that load proton as an extension")
-set(TEST_ENV "" CACHE STRING "Extra environment for tests: name1=value1;name2=value2")
-mark_as_advanced(TEST_EXE_PREFIX TEST_WRAP_PREFIX TEST_ENV)
+set(test_env "" CACHE STRING "Extra environment for tests: name1=value1;name2=value2")
+mark_as_advanced(TEST_EXE_PREFIX TEST_WRAP_PREFIX test_env)
 
 # Check for valgrind
 find_program(VALGRIND_EXECUTABLE valgrind DOC "location of valgrind program")
