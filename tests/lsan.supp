@@ -17,6 +17,10 @@
 # under the License.
 #
 
+# c/src/core/codec.c
+leak:^pn_data$
+leak:^pni_data_grow$
+
 # c/src/core/buffer.c
 leak:^pn_buffer$
 leak:^pn_buffer_ensure$
@@ -24,11 +28,14 @@ leak:^pn_buffer_ensure$
 # c/src/core/error.c
 leak:^pn_error$
 
-# c/src/core/object/object.c
-leak:^pn_object_new$
-
 # c/src/core/object/list.c
 leak:^pn_list$
+
+# c/src/core/object/map.c
+leak:^pni_map_allocate$
+
+# c/src/core/object/object.c
+leak:^pn_object_new$
 
 # c/src/core/object/record.c
 leak:^pni_record_create$
@@ -36,6 +43,9 @@ leak:^pni_record_create$
 # c/src/core/object/string.c
 leak:^pn_stringn$
 leak:^pn_string_grow$
+
+# c/src/core/transport.c
+leak:^pn_transport$
 
 # c/src/ssl/openssl.c
 leak:^pn_ssl_domain$
@@ -47,6 +57,8 @@ leak:^SWIG_Python_addvarlink$
 # leak:^libcrypto.so
 leak:^c2i_ASN1_BIT_STRING$
 leak:^CRYPTO_zalloc$
+leak:^CRYPTO_malloc$
+leak:^CRYPTO_realloc$
 leak:^BUF_MEM_grow$
 leak:^ASN1_STRING_set$
 leak:^x509_name_canon.part.0$
@@ -61,10 +73,25 @@ leak:^new_dir$
 leak:^add_cert_dir.isra.0.part.1$
 
 # Python
-# leak:^libpython
 leak:^PyList_Append$
 leak:^listappend$
 leak:^PyThread_allocate_lock$
 leak:^PyList_New$
 leak:^list_resize$
 leak:^s_init$
+leak:^PyType_GenericAlloc$
+leak:^PyString_FromStringAndSize$
+leak:^_PyObject_GC_Malloc$
+leak:^_PyObject_GC_Resize$
+leak:^PyString_FromString$
+leak:^PyString_Concat$
+leak:^_PyString_Resize$
+leak:^_ctypes_alloc_format_string$
+
+leak:^python
+leak:^libpython
+
+# Sasl 2
+leak:^_plug_strdup$
+
+leak:^libdigestmd5.so
