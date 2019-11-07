@@ -53,6 +53,8 @@ leak:^pn_ssl_domain$
 # SWIG
 leak:^SWIG_Python_addvarlink$
 
+leak:swig3
+
 # OpenSSL
 # leak:^libcrypto.so
 leak:^c2i_ASN1_BIT_STRING$
