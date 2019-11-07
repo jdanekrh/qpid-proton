@@ -29,8 +29,12 @@ from test_unittest import unittest
 
 # Check if we can run prlimit to control resources
 try:
-    assert subprocess.check_call(["prlimit"], stdout=open(os.devnull, 'w')) == 0, 'prlimit is present, but broken'
-    prlimit_available = True
+    with open(os.devnull, 'w') as stdout:
+        assert subprocess.check_call(["prlimit"], stdout=stdout) == 0, 'prlimit is present, but broken'
+        if subprocess.check_call(["prlimit", "-n256", "prlimit"], stdout=stdout) == 0:
+            prlimit_available = True
+        else:
+            prlimit_available = False
 except OSError:
     prlimit_available = False
 
