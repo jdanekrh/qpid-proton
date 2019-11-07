@@ -352,7 +352,7 @@ if(SWIG_FOUND)
   # Prerequisites for Python wrapper:
   find_package (PythonLibs ${PYTHON_VERSION_STRING} EXACT)
   # TODO aconway 2018-09-07: get python binding tests working with sanitizers
-  if (PYTHONLIBS_FOUND AND NOT SANITIZE_FLAGS)
+  if (PYTHONLIBS_FOUND AND (NOT SANITIZE_FLAGS OR RUNTIME_CHECK STREQUAL "asan"))
     set (DEFAULT_PYTHON ON)
   endif ()
 
