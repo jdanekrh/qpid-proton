@@ -242,7 +242,7 @@ add_test (NAME python-test
   COMMAND ${PN_ENV_SCRIPT}
   "PATH=${py_path}" "PYTHONPATH=${py_pythonpath}"
   "SASLPASSWD=${CyrusSASL_Saslpasswd_EXECUTABLE}"
-  ${TEST_ENV}
+  ${test_env}
   ${TEST_WRAP_PREFIX_CMD} ${PYTHON_EXECUTABLE} -- ${python_coverage_options} "${py_tests}/proton-test")
 set_tests_properties(python-test PROPERTIES PASS_REGULAR_EXPRESSION "Totals: .* 0 failed")
 
@@ -271,7 +271,7 @@ else ()
         "PATH=${py_path}"
         "SASLPASSWD=${CyrusSASL_Saslpasswd_EXECUTABLE}"
         "SWIG=${SWIG_EXECUTABLE}"
-        ${TEST_ENV} --
+        ${test_env} --
         ${TEST_WRAP_PREFIX_CMD} ${PYTHON_EXECUTABLE} -m tox)
       set_tests_properties(python-tox-test
         PROPERTIES

@@ -19,15 +19,15 @@
 
 # Configuration for code analysis tools: runtime checking and coverage.
 
-# Any test that needs runtime checks should use TEST_EXE_PREFIX and TEST_ENV.
+# Any test that needs runtime checks should use TEST_EXE_PREFIX and test_env.
 # Normally they are set as a result of the RUNTIME_CHECK value,
 # but can be set directly for unsupported tools or unusual flags
 # e.g. -DTEST_EXE_PREFIX=rr or -DTEST_EXE_PREFIX="valgrind --tool=massif"
 
 set(TEST_EXE_PREFIX "" CACHE STRING "Prefix for test executable command line")
 set(TEST_WRAP_PREFIX "" CACHE STRING "Prefix for interpreter tests (e.g. python, ruby) that load proton as an extension")
-set(TEST_ENV "" CACHE STRING "Extra environment for tests: name1=value1;name2=value2")
-mark_as_advanced(TEST_EXE_PREFIX TEST_WRAP_PREFIX TEST_ENV)
+set(test_env "" CACHE STRING "Extra environment for tests: name1=value1;name2=value2")
+mark_as_advanced(TEST_EXE_PREFIX TEST_WRAP_PREFIX test_env)
 
 # Check for valgrind
 find_program(VALGRIND_EXECUTABLE valgrind DOC "location of valgrind program")
@@ -103,6 +103,7 @@ elseif(RUNTIME_CHECK STREQUAL "tsan")
   assert_has_sanitizers()
   message(STATUS "Runtime race checker: gcc/clang thread sanitizer")
   set(SANITIZE_FLAGS "-g -fno-omit-frame-pointer -fsanitize=thread")
+  list(APPEND test_env "TSAN_OPTIONS=second_deadlock_stack=1 suppressions=${CMAKE_SOURCE_DIR}/tests/tsan.supp")
 
 elseif(RUNTIME_CHECK)
   message(FATAL_ERROR "'RUNTIME_CHECK=${RUNTIME_CHECK}' is invalid, valid values: ${runtime_checks}")
@@ -115,8 +116,8 @@ if(SANITIZE_FLAGS)
 endif()
 
 if(TEST_EXE_PREFIX)
-  # Add TEST_EXE_PREFIX to TEST_ENV so test runner scripts can use it.
-  list(APPEND TEST_ENV "TEST_EXE_PREFIX=${TEST_EXE_PREFIX}")
+  # Add TEST_EXE_PREFIX to test_env so test runner scripts can use it.
+  list(APPEND test_env "TEST_EXE_PREFIX=${TEST_EXE_PREFIX}")
   # Make a CMake-list form of TEST_EXE_PREFIX for add_test() commands
   separate_arguments(TEST_EXE_PREFIX_CMD UNIX_COMMAND "${TEST_EXE_PREFIX}")
 endif()

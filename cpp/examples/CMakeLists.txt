@@ -112,11 +112,10 @@ if (PYTHON_EXECUTABLE)
     set(test_path "$<TARGET_FILE_DIR:broker>:$ENV{PATH}")
   endif()
 
-  set(test_env
+  list(APPEND test_env
     "PATH=${test_path}"
     "PYTHONPATH=../../tests/py"
-    "HAS_CPP11=$<$<BOOL:${HAS_ENOUGH_CPP11}>:1>"
-    ${TEST_ENV})
+    "HAS_CPP11=$<$<BOOL:${HAS_ENOUGH_CPP11}>:1>")
 
   add_test(
     NAME cpp-example-container

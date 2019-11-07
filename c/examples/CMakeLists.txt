@@ -43,10 +43,9 @@ if (PYTHON_EXECUTABLE)
     set(test_path "$<TARGET_FILE_DIR:c-broker>:$ENV{PATH}")
   endif()
 
-  set(test_env
+  list(APPEND test_env
     "PATH=${test_path}"
-    "PYTHONPATH=../../tests/py"
-    ${TEST_ENV})
+    "PYTHONPATH=../../tests/py")
 
   add_test(
     NAME c-example-tests
