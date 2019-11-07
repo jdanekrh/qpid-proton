@@ -88,7 +88,8 @@ leak:^PyString_Concat$
 leak:^_PyString_Resize$
 leak:^_ctypes_alloc_format_string$
 
-leak:^python
+leak:python2
+leak:python3
 leak:^libpython
 
 # Sasl 2
