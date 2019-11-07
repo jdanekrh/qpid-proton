@@ -103,6 +103,7 @@ elseif(RUNTIME_CHECK STREQUAL "tsan")
   assert_has_sanitizers()
   message(STATUS "Runtime race checker: gcc/clang thread sanitizer")
   set(SANITIZE_FLAGS "-g -fno-omit-frame-pointer -fsanitize=thread")
+  list(APPEND test_env "TSAN_OPTIONS=second_deadlock_stack=1 suppressions=${CMAKE_SOURCE_DIR}/tests/tsan.supp")
 
 elseif(RUNTIME_CHECK)
   message(FATAL_ERROR "'RUNTIME_CHECK=${RUNTIME_CHECK}' is invalid, valid values: ${runtime_checks}")
@@ -115,8 +116,8 @@ if(SANITIZE_FLAGS)
 endif()
 
 if(TEST_EXE_PREFIX)
-  # Add TEST_EXE_PREFIX to TEST_ENV so test runner scripts can use it.
-  list(APPEND TEST_ENV "TEST_EXE_PREFIX=${TEST_EXE_PREFIX}")
+  # Add TEST_EXE_PREFIX to test_env so test runner scripts can use it.
+  list(APPEND test_env "TEST_EXE_PREFIX=${TEST_EXE_PREFIX}")
   # Make a CMake-list form of TEST_EXE_PREFIX for add_test() commands
   separate_arguments(TEST_EXE_PREFIX_CMD UNIX_COMMAND "${TEST_EXE_PREFIX}")
 endif()
