@@ -53,7 +53,7 @@ leak:^pn_ssl_domain$
 # SWIG
 leak:^SWIG_Python_addvarlink$
 
-leak:swig3
+leak:bin/swig3
 
 # OpenSSL
 # leak:^libcrypto.so
@@ -90,8 +90,9 @@ leak:^PyString_Concat$
 leak:^_PyString_Resize$
 leak:^_ctypes_alloc_format_string$
 
-leak:python2
-leak:python3
+leak:bin/python2
+leak:bin/python3
+leak:bin/python
 leak:^libpython
 
 # Sasl 2
