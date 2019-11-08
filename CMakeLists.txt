@@ -352,9 +352,11 @@ if(SWIG_FOUND)
   # Prerequisites for Python wrapper:
   find_package (PythonLibs ${PYTHON_VERSION_STRING} EXACT)
   # TODO aconway 2018-09-07: get python binding tests working with sanitizers
-  if (PYTHONLIBS_FOUND AND (NOT SANITIZE_FLAGS OR (RUNTIME_CHECK STREQUAL "asan" AND NOT MSVC)))
-    set (DEFAULT_PYTHON ON)
-  endif ()
+  if (PYTHONLIBS_FOUND)
+    if (NOT SANITIZE_FLAGS OR (RUNTIME_CHECK STREQUAL "asan" AND NOT MSVC))
+      set (DEFAULT_PYTHON ON)
+    endif ()
+  endif (PYTHONLIBS_FOUND)
 
   # Prerequisites for Ruby:
   find_package(Ruby)

@@ -45,7 +45,8 @@ if((CMAKE_C_COMPILER_ID MATCHES "GNU"
   set(HAS_SANITIZERS TRUE)
 elseif(MSVC)
   # https://devblogs.microsoft.com/cppblog/addresssanitizer-asan-for-windows-with-msvc/
-  check_c_compiler_flag(/fsanitize=address HAS_MSVC_ASAN)
+  # D9007 : '/fsanitize=address' requires '/MT or /MD'
+  check_c_compiler_flag("/fsanitize=address /MT" HAS_MSVC_ASAN)
 endif()
 
 # Valid values for RUNTIME_CHECK
@@ -107,7 +108,7 @@ elseif(RUNTIME_CHECK STREQUAL "asan")
   endif()
 
   if (MSVC)
-    set(SANITIZE_FLAGS "-Zi /fsanitize=address")
+    set(SANITIZE_FLAGS "/Zi /fsanitize=address")
   else()
     set(SANITIZE_FLAGS "-g -fno-omit-frame-pointer ${CLANG_ASAN_FLAG} -fsanitize=address,undefined -fsanitize-recover=vptr")
     set(TEST_WRAP_PREFIX "${CMAKE_SOURCE_DIR}/tests/preload_asan.sh $<TARGET_FILE:qpid-proton-core>")
