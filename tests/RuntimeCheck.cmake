@@ -41,6 +41,9 @@ if((CMAKE_C_COMPILER_ID MATCHES "GNU"
     OR (CMAKE_C_COMPILER_ID MATCHES "Clang"
       AND CMAKE_C_COMPILER_VERSION VERSION_GREATER 4.1))
   set(HAS_SANITIZERS TRUE)
+elseif(MSVC)
+  # https://devblogs.microsoft.com/cppblog/addresssanitizer-asan-for-windows-with-msvc/
+  check_c_compiler_flag(/fsanitize=address HAS_MSVC_ASAN)
 endif()
 
 # Valid values for RUNTIME_CHECK
@@ -101,8 +104,12 @@ elseif(RUNTIME_CHECK STREQUAL "asan")
       set(CLANG_ASAN_FLAG "-shared-libasan")
   endif()
 
-  set(SANITIZE_FLAGS "-g -fno-omit-frame-pointer ${CLANG_ASAN_FLAG} -fsanitize=address,undefined -fsanitize-recover=vptr")
-  set(TEST_WRAP_PREFIX "${CMAKE_SOURCE_DIR}/tests/preload_asan.sh $<TARGET_FILE:qpid-proton-core>")
+  if (MSVC)
+    set(SANITIZE_FLAGS "-Zi /fsanitize=address")
+  else()
+    set(SANITIZE_FLAGS "-g -fno-omit-frame-pointer ${CLANG_ASAN_FLAG} -fsanitize=address,undefined -fsanitize-recover=vptr")
+    set(TEST_WRAP_PREFIX "${CMAKE_SOURCE_DIR}/tests/preload_asan.sh $<TARGET_FILE:qpid-proton-core>")
+  endif()
   list(APPEND test_env "UBSAN_OPTIONS=suppressions=${CMAKE_SOURCE_DIR}/tests/ubsan.supp")
   list(APPEND test_env "LSAN_OPTIONS=suppressions=${CMAKE_SOURCE_DIR}/tests/lsan.supp")
 
