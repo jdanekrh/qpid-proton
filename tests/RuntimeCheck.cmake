@@ -24,6 +24,8 @@
 # but can be set directly for unsupported tools or unusual flags
 # e.g. -DTEST_EXE_PREFIX=rr or -DTEST_EXE_PREFIX="valgrind --tool=massif"
 
+include(CheckCCompilerFlag)
+
 set(TEST_EXE_PREFIX "" CACHE STRING "Prefix for test executable command line")
 set(TEST_WRAP_PREFIX "" CACHE STRING "Prefix for interpreter tests (e.g. python, ruby) that load proton as an extension")
 set(test_env "" CACHE STRING "Extra environment for tests: name1=value1;name2=value2")
