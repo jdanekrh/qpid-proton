@@ -26,3 +26,6 @@ race:^stop_polling$
 # PROTON-2133 in close
 race:c/examples/broker$
 race:cpp/examples/broker$
+
+# found by threaderciser, in c/src/proactor/epoll.c
+race:^pclosefd$

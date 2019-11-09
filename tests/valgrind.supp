@@ -149,3 +149,28 @@
    fun:*
    fun:_nss_files_getservbyname_r
 }
+
+{
+   TODO: investigate threaderciser
+   Helgrind:Race
+   fun:stop_polling
+   fun:pconnection_cleanup
+}
+
+{
+   TODO: investigate threaderciser
+   Helgrind:Race
+   obj:*
+   obj:*
+   fun:pmutex_finalize
+   fun:pconnection_final_free
+}
+
+{
+   TODO: investigate threaderciser
+   Helgrind:Race
+   obj:*
+   obj:*
+   fun:pmutex_finalize
+   fun:pcontext_finalize
+}
