@@ -18,11 +18,14 @@
 #
 
 #add_definitions(${COMPILE_WARNING_FLAGS} ${COMPILE_PLATFORM_FLAGS})
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(benchmark REQUIRED)
 
-add_executable("hellobench" bench.cpp)
+add_executable(hellobench bench.cpp)
 target_link_libraries(hellobench benchmark pthread qpid-proton-proactor)
 
-add_executable(quiver quiver-arrow-qpid-proton-c.c)
-target_link_libraries(quiver qpid-proton-proactor)
+#add_executable(quiver quiver-arrow-qpid-proton-c.c)
+#target_link_libraries(quiver qpid-proton-proactor)
