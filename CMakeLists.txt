@@ -38,6 +38,7 @@ find_package (CyrusSASL)
 
 enable_testing ()
 
+include(CheckCCompilerFlag)
 # Set up runtime checks (valgrind, sanitizers etc.)
 include(tests/RuntimeCheck.cmake)
 
@@ -109,6 +110,13 @@ endif()
 
 # Try to keep any platform specific overrides together here:
 
+# Older clang (such on ubuntu 16.04) fails to link with -flto
+# https://bugs.launchpad.net/ubuntu/+source/llvm-toolchain-snapshot/+bug/1254970
+check_c_compiler_flag(-flto HAS_FLTO)
+if (NOT HAS_FLTO)
+  set (NOENABLE_LINKTIME_OPTIMIZATION ON)
+endif (NOT HAS_FLTO)
+
 # MacOS has a bunch of differences in build tools and process and so we have to turn some things
 # off if building there:
 if (APPLE)
@@ -137,7 +145,7 @@ if (CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
   if (ENABLE_WARNING_ERROR)
     set (WERROR "-Werror")
   endif (ENABLE_WARNING_ERROR)
-  set (COMPILE_WARNING_FLAGS "${WERROR} -Wall -pedantic-errors -Wstrict-prototypes -Wc++-compat -Wvla -Wsign-compare -Wwrite-strings")
+  set (COMPILE_WARNING_FLAGS "${WERROR} -Wall -pedantic-errors -Wvla -Wsign-compare -Wwrite-strings")
   # C++ allow "%z" format specifier and variadic macros
   set (CXX_WARNING_FLAGS "${COMPILE_WARNING_FLAGS} -Wno-format -Wno-variadic-macros")
   if (BUILD_WITH_CXX)
@@ -151,6 +159,7 @@ if (CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
       set (COMPILE_PLATFORM_FLAGS "${COMPILE_PLATFORM_FLAGS} -Wno-unused-result")
     endif()
   else (BUILD_WITH_CXX)
+    set (COMPILE_WARNING_FLAGS "${COMPILE_WARNING_FLAGS} -Wstrict-prototypes -Wc++-compat")
     set (COMPILE_LANGUAGE_FLAGS "-std=c99")
     set (COMPILE_PLATFORM_FLAGS "-std=gnu99")
   endif (BUILD_WITH_CXX)
