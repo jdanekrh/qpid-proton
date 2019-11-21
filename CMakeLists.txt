@@ -139,7 +139,7 @@ if (CMAKE_COMPILER_IS_GNUCC)
   endif (ENABLE_WARNING_ERROR)
   set (COMPILE_WARNING_FLAGS "${WERROR} -Wall -pedantic-errors")
   # C++ allow "%z" format specifier and variadic macros
-  set (CXX_WARNING_FLAGS "${COMPILE_WARNING_FLAGS} -Wno-format -Wno-variadic-macros")
+  set (CXX_WARNING_FLAGS "${COMPILE_WARNING_FLAGS} -Wno-variadic-macros")
   if (NOT BUILD_WITH_CXX)
     set (COMPILE_WARNING_FLAGS "${COMPILE_WARNING_FLAGS} -Wstrict-prototypes -Wc++-compat -Wvla -Wsign-compare -Wwrite-strings")
     set (COMPILE_LANGUAGE_FLAGS "-std=c99")
@@ -174,9 +174,6 @@ if (CMAKE_C_COMPILER_ID MATCHES "Clang")
   if (ENABLE_WARNING_ERROR)
     set (COMPILE_WARNING_FLAGS "-Werror ${COMPILE_WARNING_FLAGS}")
   endif (ENABLE_WARNING_ERROR)
-  # TODO aconway 2016-01-06: we should be able to clean up the code and turn on
-  # some of these warnings.
-  set (CXX_WARNING_FLAGS "${COMPILE_WARNING_FLAGS} -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-float-equal -Wno-padded -Wno-sign-conversion -Wno-switch-enum -Wno-weak-vtables -Wno-exit-time-destructors -Wno-global-constructors -Wno-shorten-64-to-32 -Wno-documentation -Wno-documentation-unknown-command -Wno-old-style-cast -Wno-missing-noreturn")
 endif()
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
