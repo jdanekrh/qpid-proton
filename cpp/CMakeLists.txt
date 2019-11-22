@@ -317,3 +317,5 @@ macro(add_catch_test tag)
 endmacro(add_catch_test)
 
 add_catch_test(url)
+
+add_subdirectory(bench)

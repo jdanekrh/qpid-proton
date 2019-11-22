@@ -40,20 +40,26 @@
 // variant of the receive.c proactor example
 // borrowed things from the quiver arrow, too
 
+// https://www.kernel.org/doc/html/v4.12/admin-guide/pm/intel_pstate.html
+// https://llvm.org/docs/Benchmarking.html
+
+// sudo sh -c 'echo 1 > /proc/sys/kernel/perf_event_paranoid'
+// sudo sh -c 'echo 0 > /proc/sys/kernel/kptr_restrict'
+
 #define MAX_SIZE 1024
 
 typedef char str[MAX_SIZE];
 
 typedef struct app_data_t {
   str container_id;
-  pn_rwbytes_t message_buffer;
-  int message_count = 50 * 1000;
-  int received;
+  pn_rwbytes_t message_buffer{};
+  int message_count;
+  int received = 0;
   pn_message_t *message;
   int sent = 0;
   pn_rwbytes_t msgout;
   int credit_window = 5000;
-  int acknowledged;
+  int acknowledged = 0;
   int closed = 0;
 } app_data_t;
 
@@ -81,7 +87,7 @@ static void handle_sender(app_data_t *app, pn_event_t *event);
 // stdout
 void stdoutlogger(const char *message) { printf("%s\n", message); }
 
-//const bool VERBOSE = true;
+// const bool VERBOSE = true;
 const bool VERBOSE = false;
 const bool ERRORS = true;
 // const bool ERRORS = false;
@@ -111,7 +117,7 @@ static int exit_code = 0;
 //}
 
 ///* Create a message with a map { "sequence" : number } encode it and return
-///the encoded buffer. */
+/// the encoded buffer. */
 // static void send_message(app_data_t *app, pn_link_t *sender) {
 //    /* Construct a message with the map { "sequence": app.sent } */
 //    pn_message_t* message = pn_message();
@@ -146,16 +152,84 @@ static void decode_message(pn_rwbytes_t data) {
   }
 }
 
-static void BM_SendReceiveMessages(benchmark::State &state) {
+static void BM_InitCloseSender(benchmark::State &state) {
   if (VERBOSE)
-    printf("BEGIN BM_SendReceiveMessages\n");
+    printf("BEGIN BM_InitCloseSender\n");
 
   for (auto _ : state) {
-    //        app.closed = false;
-    app_data_t app;
-    app.message = pn_message();
-    sprintf(app.container_id, "%s:%06x", "BM_SendReceiveMessages",
-            rand() & 0xffffff);
+    pn_connection_driver_t sender;
+    if (pn_connection_driver_init(&sender, NULL, NULL) != 0) {
+      printf("sender: pn_connection_driver_init failed\n");
+      exit(1);
+    }
+
+    //            pn_log_enable(true);
+    //            pn_log_logger(stdoutlogger);
+    //            pn_transport_trace(receiver.transport, PN_TRACE_FRM |
+    //            PN_TRACE_EVT); pn_transport_trace(sender.transport,
+    //            PN_TRACE_FRM | PN_TRACE_EVT);
+
+    //    pn_transport_trace(receiver.transport, PN_TRACE_EVT);
+    //    pn_transport_trace(sender.transport, PN_TRACE_EVT);
+    //    pn_log_enable(false);
+    //    pn_log_logger(NULL);
+    //    pn_transport_trace(receiver.transport, PN_TRACE_OFF);
+    //    pn_transport_set_tracer(receiver.transport, devnull);
+    //
+    //    pn_transport_trace(sender.transport, PN_TRACE_OFF);
+    //    pn_transport_set_tracer(sender.transport, devnull);
+
+    //            printf("aaaa\n");
+    //        sleep(1);
+
+    pn_connection_driver_close(&sender);
+
+    //    shovel(sender, receiver);
+
+    pn_connection_driver_destroy(&sender);
+  }
+
+  if (VERBOSE)
+    printf("END BM_InitCloseSender\n");
+}
+
+BENCHMARK(BM_InitCloseSender)->Unit(benchmark::kMillisecond);
+
+static void BM_InitCloseReceiver(benchmark::State &state) {
+  if (VERBOSE)
+    printf("BEGIN BM_InitCloseReceiver\n");
+
+  for (auto _ : state) {
+    pn_connection_driver_t receiver;
+    if (pn_connection_driver_init(&receiver, NULL, NULL) != 0) {
+      printf("receiver: pn_connection_driver_init failed\n");
+      exit(1);
+    }
+
+    pn_connection_driver_close(&receiver);
+
+    //    shovel(receiver, NULL);
+
+    pn_connection_driver_destroy(&receiver);
+  }
+
+  if (VERBOSE)
+    printf("END BM_InitCloseReceiver\n");
+}
+
+BENCHMARK(BM_InitCloseReceiver)->Unit(benchmark::kMillisecond);
+
+static void BM_EstablishConnection(benchmark::State &state) {
+  if (VERBOSE)
+    printf("BEGIN BM_EstablishConnection\n");
+
+  app_data_t app = {};
+  app.message_count = 1;
+  app.message = pn_message();
+  sprintf(app.container_id, "%s:%06x", "BM_SendReceiveMessages",
+          rand() & 0xffffff);
+
+  for (auto _ : state) {
 
     pn_connection_driver_t receiver;
     if (pn_connection_driver_init(&receiver, NULL, NULL) != 0) {
@@ -187,6 +261,7 @@ static void BM_SendReceiveMessages(benchmark::State &state) {
 
     //            printf("aaaa\n");
     //        sleep(1);
+
     do {
       pn_event_t *event;
       while ((event = pn_connection_driver_next_event(&sender)) != NULL) {
@@ -206,13 +281,223 @@ static void BM_SendReceiveMessages(benchmark::State &state) {
     shovel(sender, receiver);
 
     // this can take long time, up to 500 ms
-    //        pn_connection_driver_destroy(&receiver);
-    //        pn_connection_driver_destroy(&sender);
+    pn_connection_driver_destroy(&receiver);
+    pn_connection_driver_destroy(&sender);
   }
+
+  state.SetLabel("messages");
+  state.SetItemsProcessed(app.acknowledged);
+
+  if (VERBOSE)
+    printf("END BM_EstablishConnection\n");
+}
+
+BENCHMARK(BM_EstablishConnection)->Unit(benchmark::kMillisecond);
+
+static void BM_SendReceiveMessages(benchmark::State &state) {
+  if (VERBOSE)
+    printf("BEGIN BM_SendReceiveMessages\n");
+
+  app_data_t app = {};
+  app.message_count = -1; // unlimited
+  app.message = pn_message();
+  app.credit_window = state.range(0);
+  sprintf(app.container_id, "%s:%06x", "BM_SendReceiveMessages",
+          rand() & 0xffffff);
+
+  pn_connection_driver_t receiver;
+  if (pn_connection_driver_init(&receiver, NULL, NULL) != 0) {
+    printf("receiver: pn_connection_driver_init failed\n");
+    exit(1);
+  }
+
+  pn_connection_driver_t sender;
+  if (pn_connection_driver_init(&sender, NULL, NULL) != 0) {
+    printf("sender: pn_connection_driver_init failed\n");
+    exit(1);
+  }
+
+  //            pn_log_enable(true);
+  //            pn_log_logger(stdoutlogger);
+  //            pn_transport_trace(receiver.transport, PN_TRACE_FRM |
+  //            PN_TRACE_EVT); pn_transport_trace(sender.transport,
+  //            PN_TRACE_FRM | PN_TRACE_EVT);
+
+  //    pn_transport_trace(receiver.transport, PN_TRACE_EVT);
+  //    pn_transport_trace(sender.transport, PN_TRACE_EVT);
+  //    pn_log_enable(false);
+  //    pn_log_logger(NULL);
+  //    pn_transport_trace(receiver.transport, PN_TRACE_OFF);
+  //    pn_transport_set_tracer(receiver.transport, devnull);
+  //
+  //    pn_transport_trace(sender.transport, PN_TRACE_OFF);
+  //    pn_transport_set_tracer(sender.transport, devnull);
+
+  //            printf("aaaa\n");
+  //        sleep(1);
+
+  for (auto _ : state) {
+    pn_event_t *event;
+    while ((event = pn_connection_driver_next_event(&sender)) != NULL) {
+      handle_sender(&app, event);
+    }
+    shovel(sender, receiver);
+    while ((event = pn_connection_driver_next_event(&receiver)) != NULL) {
+      handle_receiver(&app, event);
+    }
+    shovel(receiver, sender);
+  }
+
+  pn_connection_driver_close(&receiver);
+  pn_connection_driver_close(&sender);
+
+  shovel(receiver, sender);
+  shovel(sender, receiver);
+
+  // this can take long time, up to 500 ms
+  pn_connection_driver_destroy(&receiver);
+  pn_connection_driver_destroy(&sender);
+
+  state.SetLabel("messages");
+  state.SetItemsProcessed(app.acknowledged);
 
   if (VERBOSE)
     printf("END BM_SendReceiveMessages\n");
 }
+
+BENCHMARK(BM_SendReceiveMessages)
+    ->RangeMultiplier(3)
+    ->Range(1, 27000)
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_SendReceiveMessages)
+    ->DenseRange(30000, 100000, 10000)
+    ->Iterations(100)
+    ->Unit(benchmark::kMillisecond);
+
+static void BM_EncodeMapMessage(benchmark::State &state) {
+  if (VERBOSE)
+    printf("BEGIN BM_EncodeMapMessage\n");
+
+  uint64_t entries = 0;
+
+  pn_message_t *message;
+  message = pn_message();
+
+  for (auto _ : state) {
+    pn_message_clear(message);
+    pn_data_t *body;
+    body = pn_message_body(message);
+//    pn_data_put_int(pn_message_id(message),42);
+    pn_data_put_map(body);
+    pn_data_enter(body);
+    for (size_t i = 0; i < state.range(0); ++i) {
+      pn_data_put_string(
+          body, pn_bytes(sizeof("some key value") - 1, "some key value"));
+      pn_data_put_int(body, 42);
+      ++entries;
+    }
+    pn_data_exit(body);
+    pn_rwbytes_t buf{};
+    if (pn_message_encode2(message, &buf) == 0) {
+      state.SkipWithError(pn_error_text(pn_message_error(message)));
+    }
+    if (buf.start)
+      free(buf.start);
+  }
+  pn_message_free(message);
+
+  state.SetLabel("entries");
+  state.SetItemsProcessed(entries);
+
+  if (VERBOSE)
+    printf("END BM_EncodeMapMessage\n");
+}
+
+//BENCHMARK(BM_EncodeMapMessage)
+//    ->RangeMultiplier(3)
+//    ->Range(1, 1000000000)
+//    ->MinTime(2)
+//    ->Unit(benchmark::kMillisecond);
+//
+BENCHMARK(BM_EncodeMapMessage)
+->RangeMultiplier(3)
+    ->Iterations(10)
+    ->Range(500000, 500000)
+    ->Unit(benchmark::kMillisecond);
+
+
+static void BM_EncodeListMessage(benchmark::State &state) {
+  if (VERBOSE)
+    printf("BEGIN BM_EncodeListMessage\n");
+
+  uint64_t entries = 0;
+
+  for (auto _ : state) {
+    pn_message_t *message = pn_message();
+    pn_data_t *body;
+    body = pn_message_body(message);
+    pn_data_put_list(body);
+    pn_data_enter(body);
+    for (size_t i = 0; i < state.range(0); ++i) {
+      pn_data_put_string(
+          body, pn_bytes(sizeof("some list value") - 1, "some list value"));
+      pn_data_put_int(body, 42);
+      ++entries;
+      ++entries;
+    }
+    pn_data_exit(body);
+//    pn_rwbytes_t buf{};
+//    if (pn_message_encode2(message, &buf) == 0) {
+//      state.SkipWithError(pn_error_text(pn_message_error(message)));
+//      exit(EXIT_FAILURE);
+//    }
+//    if (buf.start)
+//      free(buf.start);
+//    pn_message_clear(message);
+    pn_message_free(message);
+  }
+
+  state.SetLabel("entries");
+  state.SetItemsProcessed(entries);
+
+  if (VERBOSE)
+    printf("END BM_EncodeListMessage\n");
+}
+
+//BENCHMARK(BM_EncodeListMessage)
+//    ->RangeMultiplier(3)
+//    ->Range(1, 3000000)
+//    ->MinTime(2)
+//    ->Unit(benchmark::kMillisecond);
+
+//BENCHMARK(BM_EncodeListMessage)
+//->RangeMultiplier(3)
+//    ->DenseRange(600, 1000000, 10000)
+//    ->MinTime(2)
+//    ->Unit(benchmark::kMillisecond);
+
+BENCHMARK(BM_EncodeListMessage)
+->RangeMultiplier(3)
+    ->DenseRange(1000000, 5000000, 100000)
+    ->MinTime(2)
+    ->Unit(benchmark::kMillisecond);
+
+//
+//BENCHMARK(BM_EncodeListMessage)
+//->RangeMultiplier(3)
+//    ->Iterations(10)
+//    ->Range(500000, 500000)
+//    ->Unit(benchmark::kMillisecond);
+//BENCHMARK(BM_EncodeListMessage)
+//->RangeMultiplier(3)
+//    ->Iterations(10)
+//    ->Range(60000, 60000)
+//    ->Unit(benchmark::kMillisecond);
+//BENCHMARK(BM_EncodeListMessage)
+//->RangeMultiplier(3)
+//    ->Iterations(10)
+//    ->Range(1000000000, 1000000000)
+//    ->Unit(benchmark::kMillisecond);
 
 void shovel(pn_connection_driver_t &sender, pn_connection_driver_t &receiver) {
   pn_bytes_t wbuf = pn_connection_driver_write_buffer(&receiver);
@@ -228,6 +513,7 @@ void shovel(pn_connection_driver_t &sender, pn_connection_driver_t &receiver) {
     fflush(stderr);
     exit(1);
   }
+  // should free bufs
 
   size_t s = rbuf.size < wbuf.size ? rbuf.size : wbuf.size;
   memcpy(rbuf.start, wbuf.start, s);
@@ -236,10 +522,8 @@ void shovel(pn_connection_driver_t &sender, pn_connection_driver_t &receiver) {
   pn_connection_driver_write_done(&receiver, s);
 }
 
-BENCHMARK(BM_SendReceiveMessages)->Unit(benchmark::kMillisecond);
-
 ///* Create a message with a map { "sequence" : number } encode it and return
-///the encoded buffer. */
+/// the encoded buffer. */
 static void send_message(app_data_t *app, pn_link_t *sender) {
   /* Construct a message with the map { "sequence": app.sent } */
   pn_data_t *body;
