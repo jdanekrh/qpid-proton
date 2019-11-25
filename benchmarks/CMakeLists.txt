@@ -24,5 +24,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(benchmark REQUIRED)
 
-add_executable(sslbench bench.cpp)
+add_executable(hellobench c-benchmarks.cpp)
+target_link_libraries(hellobench benchmark pthread qpid-proton-proactor)
+
+if ()
+add_executable(sslbench cpp-benchmarks.cpp)
 target_link_libraries(sslbench benchmark pthread qpid-proton-proactor qpid-proton-cpp)
+endif ()

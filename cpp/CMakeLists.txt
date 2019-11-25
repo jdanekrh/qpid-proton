@@ -318,4 +318,6 @@ endmacro(add_catch_test)
 
 add_catch_test(url)
 
-add_subdirectory(bench)
+if (ENABLE_BENCHMARKS)
+add_subdirectory(benchmarks)
+endif (ENABLE_BENCHMARKS)

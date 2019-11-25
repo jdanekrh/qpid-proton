@@ -24,8 +24,5 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(benchmark REQUIRED)
 
-#add_executable(hellobench ../../../benchmarks/c-benchmarks.cpp)
-#target_link_libraries(hellobench benchmark pthread qpid-proton-proactor)
-
-#add_executable(quiver quiver-arrow-qpid-proton-c.c)
-#target_link_libraries(quiver qpid-proton-proactor)
+add_executable(cpp-benchmarks benchmarks_main.cpp container.cpp)
+target_link_libraries(cpp-benchmarks benchmark pthread qpid-proton-cpp)
