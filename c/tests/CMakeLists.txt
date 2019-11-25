@@ -124,5 +124,3 @@ endif (CMAKE_CXX_COMPILER)
 if (ENABLE_FUZZ_TESTING)
   add_subdirectory(fuzz)
 endif (ENABLE_FUZZ_TESTING)
-
-add_subdirectory(bench)
