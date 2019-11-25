@@ -97,7 +97,7 @@ static void BM_InitCloseSender(benchmark::State &state) {
     printf("END BM_InitCloseSender\n");
 }
 
-BENCHMARK(BM_InitCloseSender)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_InitCloseSender)->Unit(benchmark::kMicrosecond);
 
 static void BM_InitCloseReceiver(benchmark::State &state) {
   if (VERBOSE)
@@ -118,7 +118,7 @@ static void BM_InitCloseReceiver(benchmark::State &state) {
     printf("END BM_InitCloseReceiver\n");
 }
 
-BENCHMARK(BM_InitCloseReceiver)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_InitCloseReceiver)->Unit(benchmark::kMicrosecond);
 
 // sends single message and closes the connection
 static void BM_EstablishConnection(benchmark::State &state) {
@@ -128,7 +128,7 @@ static void BM_EstablishConnection(benchmark::State &state) {
   app_data_t app = {};
   app.message_count = 1;
   app.message = pn_message();
-  sprintf(app.container_id, "%s:%06x", "BM_SendReceiveMessages",
+  sprintf(app.container_id, "%s:%06x", "BM_EstablishConnection",
           rand() & 0xffffff);
 
   for (auto _ : state) {
@@ -175,7 +175,7 @@ static void BM_EstablishConnection(benchmark::State &state) {
     printf("END BM_EstablishConnection\n");
 }
 
-BENCHMARK(BM_EstablishConnection)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_EstablishConnection)->Unit(benchmark::kMicrosecond);
 
 static void BM_SendReceiveMessages(benchmark::State &state) {
   if (VERBOSE)
@@ -231,11 +231,9 @@ static void BM_SendReceiveMessages(benchmark::State &state) {
 
 BENCHMARK(BM_SendReceiveMessages)
     ->RangeMultiplier(3)
-    ->Range(1, 27000)
-    ->Unit(benchmark::kMillisecond);
-BENCHMARK(BM_SendReceiveMessages)
-    ->DenseRange(30000, 100000, 10000)
-    ->Iterations(100)
+    ->Range(1, 200000)
+    ->ArgName("creditWindow")
+    ->Arg(1000)
     ->Unit(benchmark::kMillisecond);
 
 
@@ -279,10 +277,10 @@ static void handle_sender(app_data_t *app, pn_event_t *event) {
 
   case PN_LINK_FLOW: {
     if (VERBOSE)
-      printf("BEGIN handle_sender: PN_LINK_FLOW");
+      printf("BEGIN handle_sender: PN_LINK_FLOW\n");
     /* The peer has given us some credit, now we can send messages */
     pn_link_t *sender = pn_event_link(event);
-    while (pn_link_credit(sender) > 0 /*&& app->sent < app->message_count*/) {
+    while (pn_link_credit(sender) > 0 && app->sent != app->message_count) {
       ++app->sent;
       /* Use sent counter as unique delivery tag. */
       pn_delivery(sender, pn_dtag((const char *)&app->sent, sizeof(app->sent)));
@@ -292,7 +290,23 @@ static void handle_sender(app_data_t *app, pn_event_t *event) {
   }
 
   case PN_DELIVERY: {
-    exit(EXIT_FAILURE);
+    /* We received acknowledgement from the peer that a message was delivered. */
+    pn_delivery_t *d = pn_event_delivery(event);
+    if (pn_delivery_remote_state(d) == PN_ACCEPTED) {
+      if (VERBOSE)
+        printf("got PN_ACCEPTED\n");
+      if (++app->acknowledged == app->message_count) {
+        if (VERBOSE)
+          printf("%d messages sent and acknowledged\n", app->acknowledged);
+        pn_connection_close(pn_event_connection(event));
+        /* Continue handling events till we receive TRANSPORT_CLOSED */
+      }
+    } else {
+      fprintf(stderr, "unexpected delivery state %d\n", (int) pn_delivery_remote_state(d));
+      pn_connection_close(pn_event_connection(event));
+      exit(EXIT_FAILURE);
+    }
+    break;
   }
 
   case PN_CONNECTION_REMOTE_OPEN:

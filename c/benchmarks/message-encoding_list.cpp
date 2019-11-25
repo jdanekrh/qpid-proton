@@ -69,21 +69,26 @@ static void BM_EncodeListMessage(benchmark::State &state) {
   uint64_t entries = 0;
 
   pn_message_t *message = pn_message();
-  pn_data_t *body;
-  body = pn_message_body(message);
-  pn_data_put_list(body);
-  pn_data_enter(body);
   for (auto _ : state) {
-    pn_data_put_string(
-        body, pn_bytes(sizeof("some list value") - 1, "some list value"));
-    pn_data_put_int(body, 42);
-    entries += 2;
+    pn_message_clear(message);
+    pn_data_t *body;
+    body = pn_message_body(message);
+    pn_data_put_list(body);
+    pn_data_enter(body);
+    for (size_t i = 0; i < state.range(0); i += 2) {
+      pn_data_put_string(
+          body, pn_bytes(sizeof("some list value") - 1, "some list value"));
+      pn_data_put_int(body, 42);
+      entries += 2;
+    }
+    pn_data_exit(body);
+    pn_rwbytes_t buf{};
+    if (pn_message_encode2(message, &buf) == 0) {
+      state.SkipWithError(pn_error_text(pn_message_error(message)));
+    }
+    if (buf.start)
+      free(buf.start);
   }
-  pn_data_exit(body);
-  //
-  //    if (buf.start)
-  //      free(buf.start);
-  //    pn_message_clear(message);
   pn_message_free(message);
 
   state.SetLabel("entries");
@@ -93,7 +98,12 @@ static void BM_EncodeListMessage(benchmark::State &state) {
     printf("END BM_EncodeListMessage\n");
 }
 
-BENCHMARK(BM_EncodeListMessage);
+BENCHMARK(BM_EncodeListMessage)
+    ->Arg(10)
+    ->Arg(100)
+    ->Arg(10000)
+    ->ArgName("entries")
+    ->Unit(benchmark::kMillisecond);
 
 static void BM_CreateListMessage(benchmark::State &state) {
   if (VERBOSE)

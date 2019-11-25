@@ -46,16 +46,17 @@ private:
   std::string url;
 };
 
+// expected to run in < 1 ms, for me it is 160 us
 static void BM_UnsuccessfulContainerRun(benchmark::State &state) {
   for (auto _ : state) {
     try {
-      handler h("127.0.0.42:1234"); // wrong port
+      handler h("127.0.0.1:0"); // wrong port
       proton::container(h).run();
-      state.SkipWithError("Exception excepted");
+      state.SkipWithError("Exception expected");
     } catch (std::exception &e) {
       // expected
     }
   }
 }
 
-BENCHMARK(BM_UnsuccessfulContainerRun)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_UnsuccessfulContainerRun)->Unit(benchmark::kMicrosecond);

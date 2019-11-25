@@ -24,5 +24,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(benchmark REQUIRED)
 
-add_executable(c-benchmarks connection-driver.cpp message-encoding_list.cpp message-encoding_map.cpp benchmarks_main.cpp)
+add_executable(c-benchmarks benchmarks_main.cpp connection-driver.cpp message-encoding_list.cpp message-encoding_map.cpp)
 target_link_libraries(c-benchmarks benchmark pthread qpid-proton-proactor)
+
+add_test(NAME c-benchmarks COMMAND c-benchmarks)

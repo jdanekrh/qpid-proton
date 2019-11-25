@@ -26,3 +26,5 @@ find_package(benchmark REQUIRED)
 
 add_executable(cpp-benchmarks benchmarks_main.cpp container.cpp)
 target_link_libraries(cpp-benchmarks benchmark pthread qpid-proton-cpp)
+
+add_test(NAME cpp-benchmarks COMMAND cpp-benchmarks)
