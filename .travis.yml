@@ -36,20 +36,19 @@ matrix:
   - os: osx
     osx_image: xcode8.3
     env:
-    - PKG_CONFIG_PATH='/usr/local/opt/openssl/lib/pkgconfig'
+    - PKG_CONFIG_PATH='/usr/local/opt/openssl@1.1/lib/pkgconfig'
     - PATH="/usr/local/opt/python/libexec/bin:/usr/local/bin:$PATH"
     - QPID_PROTON_CMAKE_ARGS='-DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 -DBUILD_RUBY=NO -DBUILD_GO=OFF'
 
   - os: osx
     osx_image: xcode10.1
     env:
-    - PKG_CONFIG_PATH='/usr/local/opt/openssl/lib/pkgconfig'
+    - PKG_CONFIG_PATH='/usr/local/opt/openssl@1.1/lib/pkgconfig'
     - PATH="/usr/local/opt/python/libexec/bin:/usr/local/bin:$PATH"
     - QPID_PROTON_CMAKE_ARGS='-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13 -DBUILD_RUBY=NO -DBUILD_PYTHON=OFF -DBUILD_GO=ON'
 
-
 addons:
-  # ubuntu dependencies
+  # Ubuntu 16.04 APT dependencies, https://packages.ubuntu.com/
   apt:
     packages:
     - cmake
@@ -65,14 +64,15 @@ addons:
     - golang
     - lcov
     - libjsoncpp-dev
-  # macOS dependencies
+  # macOS Homebrew dependencies, https://formulae.brew.sh/
   homebrew:
-    update: true
     packages:
     - jsoncpp
     - libuv
-    - openssl
+    - openssl@1.1
+    - python@2
     - swig
+    update: true
 
 install:
 - python -m pip install --user --upgrade pip
