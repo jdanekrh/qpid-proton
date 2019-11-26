@@ -36,18 +36,27 @@ matrix:
   - os: osx
     osx_image: xcode8.3
     env:
-    # put python -> python3 from Homebrew at the beginning of path
     - PATH="/usr/local/opt/python/libexec/bin:/usr/local/bin:$PATH"
-    - PKG_CONFIG_PATH='/usr/local/opt/openssl@1.1/lib/pkgconfig'
+    - PKG_CONFIG_PATH='/usr/local/opt/openssl/lib/pkgconfig'
     - QPID_PROTON_CMAKE_ARGS='-DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 -DBUILD_RUBY=NO -DBUILD_GO=OFF'
+    before_install:
+    # addons:homebrew:packages is slow and hard to get right on older macOS travis images
+    - brew update
+    - brew install libuv swig jsoncpp
 
   - os: osx
     osx_image: xcode10.1
     env:
-    # ends up using system python 2.7 at /usr/bin/python
-    - PATH="/usr/local/bin:$PATH"
+    - PATH="/usr/local/opt/python/libexec/bin:/usr/local/bin:$PATH"
     - PKG_CONFIG_PATH='/usr/local/opt/openssl@1.1/lib/pkgconfig'
     - QPID_PROTON_CMAKE_ARGS='-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13 -DBUILD_RUBY=NO -DBUILD_PYTHON=OFF -DBUILD_GO=ON'
+    addons:
+      # macOS Homebrew dependencies, https://formulae.brew.sh/
+      homebrew:
+        packages:
+        - jsoncpp
+        - libuv
+        - swig
 
 addons:
   # Ubuntu 16.04 APT dependencies, https://packages.ubuntu.com/
@@ -66,16 +75,6 @@ addons:
     - golang
     - lcov
     - libjsoncpp-dev
-  # macOS Homebrew dependencies, https://formulae.brew.sh/
-  homebrew:
-    packages:
-    - jsoncpp
-    - libuv
-    - openssl@1.1
-    - python
-    - ruby
-    - swig
-    update: true
 
 install:
 - python -m pip install --user --upgrade pip
