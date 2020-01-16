@@ -230,19 +230,22 @@ set (py_tests "${py_src}/tests")
 
 set (py_path ${CMAKE_BINARY_DIR}/c/tools ${py_bld} $ENV{PATH})
 set (py_pythonpath ${py_tests} ${py_src} ${py_bin} ${py_dll} $ENV{PYTHONPATH})
-to_native_path ("${py_pythonpath}" py_pythonpath)
-to_native_path ("${py_path}" py_path)
+# trailing space matters on Windows, otherwise last\dir\ later combines with list separator ; into \;
+to_native_path ("${py_pythonpath} " py_pythonpath)
+to_native_path ("${py_path} " py_path)
 
 if (CMAKE_BUILD_TYPE MATCHES "Coverage")
   set (python_coverage_options -m coverage run)
 endif(CMAKE_BUILD_TYPE MATCHES "Coverage")
 
-add_test (NAME python-test
-  COMMAND ${PN_ENV_SCRIPT}
-  "PATH=${py_path}" "PYTHONPATH=${py_pythonpath}"
-  "SASLPASSWD=${CyrusSASL_Saslpasswd_EXECUTABLE}"
-  ${TEST_ENV}
-  ${TEST_WRAP_PREFIX_CMD} ${PYTHON_EXECUTABLE} -- ${python_coverage_options} "${py_tests}/proton-test")
+pn_add_test(
+  INTERPRETED
+  NAME python-test
+  PREPEND_ENVIRONMENT
+    "PATH=${py_path}"
+    "PYTHONPATH=${py_pythonpath}"
+    "SASLPASSWD=${CyrusSASL_Saslpasswd_EXECUTABLE}"
+  COMMAND ${PYTHON_EXECUTABLE} ${python_coverage_options} -- "${py_tests}/proton-test")
 set_tests_properties(python-test PROPERTIES PASS_REGULAR_EXPRESSION "Totals: .* 0 failed")
 
 check_python_module("tox" TOX_MODULE_FOUND)
@@ -265,13 +268,14 @@ else ()
       configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/tox.ini.in"
         "${CMAKE_CURRENT_BINARY_DIR}/tox.ini")
-      add_test (NAME python-tox-test
-        COMMAND ${PN_ENV_SCRIPT} --
-        "PATH=${py_path}"
-        "SASLPASSWD=${CyrusSASL_Saslpasswd_EXECUTABLE}"
-        "SWIG=${SWIG_EXECUTABLE}"
-        ${TEST_ENV}
-        ${TEST_WRAP_PREFIX_CMD} ${PYTHON_EXECUTABLE} -m tox)
+      pn_add_test(
+        INTERPRETED
+        NAME python-tox-test
+        PREPEND_ENVIRONMENT
+          "PATH=${py_path}"
+          "SASLPASSWD=${CyrusSASL_Saslpasswd_EXECUTABLE}"
+          "SWIG=${SWIG_EXECUTABLE}"
+        COMMAND ${PYTHON_EXECUTABLE} -m tox)
       set_tests_properties(python-tox-test
         PROPERTIES
         PASS_REGULAR_EXPRESSION "Totals: .* ignored, 0 failed"
