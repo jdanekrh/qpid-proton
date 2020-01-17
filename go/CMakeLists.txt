@@ -80,8 +80,7 @@ if (BUILD_GO)
     DEPENDS qpid-proton-core go-pkg-link go-mod-link
     WORKING_DIRECTORY $ENV{PWD})
 
-  pn_add_test(
-    UNWRAPPED
+  add_test(
     NAME go-test
     COMMAND ${GO_TEST} $ENV{PWD}/go/pkg/...
     WORKING_DIRECTORY $ENV{PWD})

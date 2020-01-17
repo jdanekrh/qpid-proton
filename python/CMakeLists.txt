@@ -230,9 +230,8 @@ set (py_tests "${py_src}/tests")
 
 set (py_path ${CMAKE_BINARY_DIR}/c/tools ${py_bld} $ENV{PATH})
 set (py_pythonpath ${py_tests} ${py_src} ${py_bin} ${py_dll} $ENV{PYTHONPATH})
-# trailing space matters on Windows, otherwise last\dir\ later combines with list separator ; into \;
-to_native_path ("${py_pythonpath} " py_pythonpath)
-to_native_path ("${py_path} " py_path)
+to_native_path ("${py_pythonpath}" py_pythonpath)
+to_native_path ("${py_path}" py_path)
 
 if (CMAKE_BUILD_TYPE MATCHES "Coverage")
   set (python_coverage_options -m coverage run)

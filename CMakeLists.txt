@@ -290,7 +290,8 @@ if (CMAKE_SYSTEM_NAME STREQUAL Windows)
   function(to_native_path path result)
     file (TO_NATIVE_PATH "${path}" path)
     string (REPLACE ";" "\;" path "${path}")
-    set (${result} "${path}" PARENT_SCOPE)
+    # without this, ...;last\dir\ would later combine with list separator ; into \;
+    set (${result} "${path}\;" PARENT_SCOPE)
   endfunction()
 else (CMAKE_SYSTEM_NAME STREQUAL Windows)
   # Just change ';'->':'
