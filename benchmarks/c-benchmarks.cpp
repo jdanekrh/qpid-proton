@@ -765,4 +765,4 @@ static void decode_message(pn_delivery_t *dlv) {
   }
 }
 
-BENCHMARK_MAIN();
+BENCHMARK_MAIN()

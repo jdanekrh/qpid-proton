@@ -59,4 +59,4 @@ static void BM_Ssl(benchmark::State &state) {
 
 BENCHMARK(BM_Ssl)->Unit(benchmark::kMillisecond);
 
-BENCHMARK_MAIN();
+BENCHMARK_MAIN()
